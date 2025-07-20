@@ -241,7 +241,15 @@ const translations = {
     delete: "Eliminar",
     edit: "Editar",
     save: "Guardar",
-    close: "Cerrar"
+    close: "Cerrar",
+    
+    // Referral Banner
+    earned: "ganado",
+    available: "disponible",
+    earnPer: "Gana",
+    perReferral: "por referido Premium! Comparte:",
+    copyLink: "Copiar Enlace",
+    viewDetails: "Ver Detalles"
   },
   fr: {
     // Navigation
