@@ -1392,6 +1392,66 @@ body {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
+/* Language Switcher */
+.language-switcher {
+  margin-left: 1rem;
+}
+
+.language-select {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 120px;
+}
+
+.language-select:hover {
+  border-color: var(--primary-color);
+  background: #f8fafc;
+}
+
+.language-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.language-select option {
+  padding: 0.5rem;
+  color: #475569;
+}
+
+@media (max-width: 768px) {
+  .language-switcher {
+    margin-left: 0.5rem;
+  }
+  
+  .language-select {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    min-width: 100px;
+  }
+}
+
+@media (max-width: 480px) {
+  .language-select {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    min-width: 80px;
+  }
+}
+
+/* Navigation adjustments for language switcher */
+.nav-items {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .navigation {
