@@ -447,7 +447,18 @@ async def process_referral_commission(payment_transaction_id: str, referral_code
         logging.warning(f"Referral code {referral_code_used} not found")
         return
     
-    commission_amount = 5.00  # $5 instant commission
+    # Find the payment transaction to get package info
+    transaction = await db.payment_transactions.find_one({"id": payment_transaction_id})
+    if not transaction:
+        logging.warning(f"Payment transaction {payment_transaction_id} not found")
+        return
+    
+    # Get commission amount from package configuration
+    package_id = transaction.get("package_id")
+    if package_id and package_id in SUBSCRIPTION_PACKAGES:
+        commission_amount = SUBSCRIPTION_PACKAGES[package_id]["commission_amount"]
+    else:
+        commission_amount = 5.00  # Default fallback
     
     try:
         # Create referral record
