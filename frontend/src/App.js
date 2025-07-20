@@ -442,6 +442,7 @@ const LanguageSwitcher = () => {
 
 // Components
 const Timer = ({ onComplete, isActive, timeLeft, totalTime }) => {
+  const { t } = useLanguage();
   const progress = ((totalTime - timeLeft) / totalTime) * 100;
   
   const formatTime = (seconds) => {
@@ -480,7 +481,7 @@ const Timer = ({ onComplete, isActive, timeLeft, totalTime }) => {
         </svg>
         <div className="timer-display">
           <div className="timer-time">{formatTime(timeLeft)}</div>
-          <div className="timer-status">{isActive ? 'Focus Time' : 'Paused'}</div>
+          <div className="timer-status">{isActive ? t('focusTime') : t('paused')}</div>
         </div>
       </div>
     </div>
