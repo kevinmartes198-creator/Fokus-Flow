@@ -666,6 +666,244 @@ const TopReferralBanner = ({ currentView, setCurrentView }) => {
   );
 };
 
+// Badges Dashboard Component
+const BadgesDashboard = () => {
+  const { user } = useAppContext();
+  const { t } = useLanguage();
+  const [badges, setBadges] = useState([]);
+  const [badgeProgress, setBadgeProgress] = useState([]);
+  const [badgeSystem, setBadgeSystem] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  useEffect(() => {
+    if (user) {
+      fetchBadgeData();
+    }
+  }, [user]);
+
+  const fetchBadgeData = async () => {
+    try {
+      setLoading(true);
+      
+      const [badgesRes, progressRes, systemRes] = await Promise.all([
+        axios.get(`${API}/users/${user.id}/badges`),
+        axios.get(`${API}/users/${user.id}/badge-progress`),
+        axios.get(`${API}/gamification/badge-system`)
+      ]);
+      
+      setBadges(badgesRes.data);
+      setBadgeProgress(progressRes.data);
+      setBadgeSystem(systemRes.data);
+    } catch (error) {
+      console.error('Error fetching badge data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkNewBadges = async () => {
+    try {
+      const response = await axios.post(`${API}/users/${user.id}/check-badges`);
+      if (response.data.newly_unlocked > 0) {
+        alert(`🎉 Congratulations! You unlocked ${response.data.newly_unlocked} new badge${response.data.newly_unlocked > 1 ? 's' : ''}!`);
+        fetchBadgeData(); // Refresh badge data
+      } else {
+        alert('No new badges available right now. Keep up the great work!');
+      }
+    } catch (error) {
+      console.error('Error checking badges:', error);
+    }
+  };
+
+  const getRarityColor = (rarity) => {
+    const colors = {
+      'common': '#6b7280',
+      'uncommon': '#10b981', 
+      'rare': '#3b82f6',
+      'legendary': '#f59e0b',
+      'exclusive': '#8b5cf6',
+      'supporter': '#ef4444'
+    };
+    return colors[rarity] || '#6b7280';
+  };
+
+  const getTierColor = (tier) => {
+    const colors = {
+      'bronze': '#cd7f32',
+      'silver': '#c0c0c0',
+      'gold': '#ffd700',
+      'platinum': '#e5e4e2',
+      'special': '#8b5cf6'
+    };
+    return colors[tier] || '#6b7280';
+  };
+
+  const filteredBadges = selectedCategory === 'all' 
+    ? badges 
+    : badges.filter(badge => badge.category === selectedCategory);
+
+  const filteredProgress = selectedCategory === 'all'
+    ? badgeProgress
+    : badgeProgress.filter(badge => badge.category === selectedCategory);
+
+  if (loading) {
+    return (
+      <div className="badges-dashboard">
+        <div className="loading">Loading badges...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="badges-dashboard">
+      <div className="badges-header">
+        <h1>🏆 Badge Collection</h1>
+        <p>Showcase your achievements and track your progress</p>
+        
+        <div className="badges-stats">
+          <div className="stat-card">
+            <span className="stat-number">{badges.length}</span>
+            <span className="stat-label">Badges Earned</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-number">{badgeProgress.length}</span>
+            <span className="stat-label">In Progress</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-number">{badgeSystem ? Object.keys(badgeSystem.badges).length : 0}</span>
+            <span className="stat-label">Total Available</span>
+          </div>
+        </div>
+
+        <button className="check-badges-btn" onClick={checkNewBadges}>
+          🔍 Check for New Badges
+        </button>
+      </div>
+
+      {/* Category Filter */}
+      {badgeSystem && (
+        <div className="category-filter">
+          <button 
+            className={`filter-btn ${selectedCategory === 'all' ? 'active' : ''}`}
+            onClick={() => setSelectedCategory('all')}
+          >
+            All Categories
+          </button>
+          {Object.entries(badgeSystem.categories).map(([categoryId, category]) => (
+            <button
+              key={categoryId}
+              className={`filter-btn ${selectedCategory === categoryId ? 'active' : ''}`}
+              onClick={() => setSelectedCategory(categoryId)}
+            >
+              {category.icon} {category.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Unlocked Badges */}
+      <div className="badges-section">
+        <h2>🎖️ Unlocked Badges ({filteredBadges.length})</h2>
+        <div className="badges-grid">
+          {filteredBadges.map((badge) => (
+            <div 
+              key={badge.id} 
+              className={`badge-card unlocked ${badge.tier}`}
+              style={{borderColor: getRarityColor(badge.rarity)}}
+            >
+              <div className="badge-icon">{badge.icon}</div>
+              <div className="badge-info">
+                <h3>{badge.name}</h3>
+                <p>{badge.description}</p>
+                <div className="badge-meta">
+                  <span 
+                    className="badge-rarity"
+                    style={{color: getRarityColor(badge.rarity)}}
+                  >
+                    {badge.rarity.toUpperCase()}
+                  </span>
+                  <span 
+                    className="badge-tier"
+                    style={{color: getTierColor(badge.tier)}}
+                  >
+                    {badge.tier.toUpperCase()}
+                  </span>
+                </div>
+                <div className="award-date">
+                  Earned: {new Date(badge.awarded_at).toLocaleDateString()}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {filteredBadges.length === 0 && (
+          <div className="no-badges">
+            <div className="empty-state">
+              <span className="empty-icon">🏆</span>
+              <p>No badges in this category yet!</p>
+              <p>Complete activities to start earning badges.</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Badge Progress */}
+      <div className="badges-section">
+        <h2>📈 Progress Toward Next Badges ({filteredProgress.length})</h2>
+        <div className="progress-grid">
+          {filteredProgress.slice(0, 9).map((badge) => (
+            <div key={badge.badge_id} className="progress-card">
+              <div className="progress-header">
+                <div className="progress-icon">{badge.icon}</div>
+                <div className="progress-info">
+                  <h4>{badge.name}</h4>
+                  <p>{badge.description}</p>
+                </div>
+              </div>
+              
+              <div className="progress-bar-container">
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill"
+                    style={{width: `${badge.progress_percentage}%`}}
+                  ></div>
+                </div>
+                <div className="progress-text">
+                  {badge.current_progress} / {badge.goal}
+                </div>
+              </div>
+              
+              <div className="progress-meta">
+                <span 
+                  className="progress-rarity"
+                  style={{color: getRarityColor(badge.rarity)}}
+                >
+                  {badge.rarity}
+                </span>
+                <span className="progress-percentage">
+                  {Math.round(badge.progress_percentage)}%
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {filteredProgress.length === 0 && (
+          <div className="no-progress">
+            <div className="empty-state">
+              <span className="empty-icon">🎯</span>
+              <p>All badges in this category are unlocked!</p>
+              <p>Great job! Check other categories for more challenges.</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Shop Component  
 const Shop = () => {
   const { user } = useAppContext();
