@@ -1142,6 +1142,700 @@ class FocusFlowTester:
             "components_working": components_working
         }
 
+    def test_phase4_advanced_analytics_system(self):
+        """🔬 PHASE 4: Test Advanced Analytics System - Comprehensive productivity analysis"""
+        print("\n" + "🔬" * 30)
+        print("PHASE 4: ADVANCED ANALYTICS SYSTEM TESTING")
+        print("Testing: System config, productivity scoring, focus patterns, analytics dashboard")
+        print("🔬" * 30)
+        
+        # STEP 1: Test Analytics System Configuration
+        print("\n📊 STEP 1: Test Analytics System Configuration")
+        
+        success, config_data, status_code = self.make_request("GET", "/analytics/system-config")
+        
+        if success and status_code == 200:
+            # Verify analytics system structure
+            required_sections = ["metrics", "visualizations"]
+            if all(section in config_data for section in required_sections):
+                self.log_test("Analytics System Config", True, "Complete analytics configuration retrieved")
+                
+                # Check productivity score configuration
+                if "productivity_score" in config_data["metrics"]:
+                    score_config = config_data["metrics"]["productivity_score"]
+                    components = score_config.get("components", {})
+                    
+                    expected_components = ["task_completion", "focus_consistency", "streak_maintenance", "goal_achievement"]
+                    if all(comp in components for comp in expected_components):
+                        self.log_test("Productivity Score Config", True, f"All {len(expected_components)} components configured")
+                        
+                        # Verify weight distribution
+                        total_weight = sum(comp["weight"] for comp in components.values())
+                        if abs(total_weight - 1.0) < 0.01:  # Allow small floating point errors
+                            self.log_test("Component Weight Distribution", True, f"Weights sum to {total_weight}")
+                        else:
+                            self.log_test("Component Weight Distribution", False, f"Weights sum to {total_weight}, expected 1.0")
+                    else:
+                        self.log_test("Productivity Score Config", False, f"Missing components: {components.keys()}")
+                else:
+                    self.log_test("Productivity Score Config", False, "Missing productivity_score configuration")
+                
+                # Check visualization configuration
+                visualizations = config_data.get("visualizations", {})
+                expected_viz = ["heatmaps", "trend_charts", "comparative_analytics"]
+                if all(viz in visualizations for viz in expected_viz):
+                    self.log_test("Visualization Config", True, f"All {len(expected_viz)} visualization types configured")
+                else:
+                    self.log_test("Visualization Config", False, f"Missing visualizations: {visualizations.keys()}")
+            else:
+                self.log_test("Analytics System Config", False, f"Missing sections: {config_data.keys()}")
+        else:
+            self.log_test("Analytics System Config", False, f"Status: {status_code}, Error: {config_data}")
+            return
+        
+        # STEP 2: Test User Productivity Score Calculation
+        print("\n⭐ STEP 2: Test User Productivity Score Calculation")
+        
+        if not self.test_user_id:
+            self.log_test("Productivity Score", False, "No test user available")
+            return
+        
+        success, score_data, status_code = self.make_request("GET", f"/users/{self.test_user_id}/productivity-score")
+        
+        if success and status_code == 200:
+            required_fields = ["score", "level", "components", "level_info", "calculated_at"]
+            if all(field in score_data for field in required_fields):
+                self.log_test("Productivity Score Structure", True, f"Complete score data retrieved")
+                
+                # Verify score range
+                score = score_data.get("score", 0)
+                if 0 <= score <= 100:
+                    self.log_test("Productivity Score Range", True, f"Score: {score}/100")
+                else:
+                    self.log_test("Productivity Score Range", False, f"Invalid score: {score}")
+                
+                # Verify level assignment
+                level = score_data.get("level", "")
+                valid_levels = ["beginner", "developing", "proficient", "expert", "master"]
+                if level in valid_levels:
+                    self.log_test("Productivity Level Assignment", True, f"Level: {level}")
+                else:
+                    self.log_test("Productivity Level Assignment", False, f"Invalid level: {level}")
+                
+                # Verify component breakdown
+                components = score_data.get("components", {})
+                expected_components = ["task_completion", "focus_consistency", "streak_maintenance", "goal_achievement"]
+                if all(comp in components for comp in expected_components):
+                    self.log_test("Score Component Breakdown", True, f"All {len(expected_components)} components calculated")
+                    
+                    # Check component score ranges
+                    valid_components = all(0 <= components[comp] <= 100 for comp in expected_components)
+                    if valid_components:
+                        self.log_test("Component Score Ranges", True, "All component scores within 0-100 range")
+                    else:
+                        self.log_test("Component Score Ranges", False, f"Invalid component scores: {components}")
+                else:
+                    self.log_test("Score Component Breakdown", False, f"Missing components: {components.keys()}")
+            else:
+                self.log_test("Productivity Score Structure", False, f"Missing fields: {score_data.keys()}")
+        else:
+            self.log_test("Productivity Score Calculation", False, f"Status: {status_code}, Error: {score_data}")
+        
+        # STEP 3: Test Focus Patterns Analysis
+        print("\n🎯 STEP 3: Test Focus Patterns Analysis")
+        
+        success, patterns_data, status_code = self.make_request("GET", f"/users/{self.test_user_id}/focus-patterns")
+        
+        if success and status_code == 200:
+            if "sessions_analyzed" in patterns_data:
+                sessions_count = patterns_data.get("sessions_analyzed", 0)
+                self.log_test("Focus Patterns Analysis", True, f"Analyzed {sessions_count} sessions")
+                
+                if sessions_count > 0:
+                    # Check pattern analysis fields
+                    pattern_fields = ["peak_focus_hour", "average_session_length", "most_productive_day", "recommendations"]
+                    if all(field in patterns_data for field in pattern_fields):
+                        self.log_test("Focus Pattern Fields", True, "Complete pattern analysis")
+                        
+                        # Verify peak focus hour
+                        peak_hour = patterns_data.get("peak_focus_hour", -1)
+                        if 0 <= peak_hour <= 23:
+                            self.log_test("Peak Focus Hour", True, f"Peak hour: {peak_hour}:00")
+                        else:
+                            self.log_test("Peak Focus Hour", False, f"Invalid hour: {peak_hour}")
+                        
+                        # Verify average session length
+                        avg_length = patterns_data.get("average_session_length", 0)
+                        if avg_length > 0:
+                            self.log_test("Average Session Length", True, f"Average: {avg_length} minutes")
+                        else:
+                            self.log_test("Average Session Length", False, f"Invalid length: {avg_length}")
+                        
+                        # Check recommendations
+                        recommendations = patterns_data.get("recommendations", {})
+                        if isinstance(recommendations, dict) and len(recommendations) > 0:
+                            self.log_test("Focus Recommendations", True, f"{len(recommendations)} recommendations provided")
+                        else:
+                            self.log_test("Focus Recommendations", False, "No recommendations generated")
+                    else:
+                        self.log_test("Focus Pattern Fields", False, f"Missing fields: {patterns_data.keys()}")
+                else:
+                    self.log_test("Focus Patterns Analysis", True, "No sessions yet - analysis not available")
+            else:
+                self.log_test("Focus Patterns Analysis", False, f"Invalid response structure: {patterns_data}")
+        else:
+            self.log_test("Focus Patterns Analysis", False, f"Status: {status_code}, Error: {patterns_data}")
+        
+        # STEP 4: Test Complete Analytics Dashboard
+        print("\n📈 STEP 4: Test Complete Analytics Dashboard")
+        
+        success, dashboard_data, status_code = self.make_request("GET", f"/users/{self.test_user_id}/analytics-dashboard")
+        
+        if success and status_code == 200:
+            required_sections = ["user_id", "generated_at", "productivity_score", "focus_patterns", "activity_summary", "recent_achievements"]
+            if all(section in dashboard_data for section in required_sections):
+                self.log_test("Analytics Dashboard Structure", True, "Complete dashboard data retrieved")
+                
+                # Verify user ID matches
+                if dashboard_data.get("user_id") == self.test_user_id:
+                    self.log_test("Dashboard User ID", True, "User ID matches request")
+                else:
+                    self.log_test("Dashboard User ID", False, f"ID mismatch: {dashboard_data.get('user_id')}")
+                
+                # Check activity summary
+                activity_summary = dashboard_data.get("activity_summary", {})
+                summary_fields = ["tasks_completed_30d", "focus_sessions_30d", "current_level", "total_xp", "current_streak", "badges_earned"]
+                if all(field in activity_summary for field in summary_fields):
+                    self.log_test("Activity Summary", True, f"30-day stats: {activity_summary['tasks_completed_30d']} tasks, {activity_summary['focus_sessions_30d']} sessions")
+                    
+                    # Verify data consistency
+                    if activity_summary["current_level"] >= 1 and activity_summary["total_xp"] >= 0:
+                        self.log_test("Activity Summary Data", True, f"Level {activity_summary['current_level']}, {activity_summary['total_xp']} XP")
+                    else:
+                        self.log_test("Activity Summary Data", False, f"Invalid data: Level {activity_summary['current_level']}, XP {activity_summary['total_xp']}")
+                else:
+                    self.log_test("Activity Summary", False, f"Missing fields: {activity_summary.keys()}")
+                
+                # Check recent achievements
+                recent_achievements = dashboard_data.get("recent_achievements", [])
+                if isinstance(recent_achievements, list):
+                    self.log_test("Recent Achievements", True, f"{len(recent_achievements)} recent achievements")
+                    
+                    # Verify achievement structure if any exist
+                    if len(recent_achievements) > 0:
+                        achievement = recent_achievements[0]
+                        achievement_fields = ["name", "icon", "awarded_at"]
+                        if all(field in achievement for field in achievement_fields):
+                            self.log_test("Achievement Structure", True, f"Achievement: {achievement['name']} {achievement['icon']}")
+                        else:
+                            self.log_test("Achievement Structure", False, f"Missing fields: {achievement}")
+                else:
+                    self.log_test("Recent Achievements", False, f"Invalid achievements data: {type(recent_achievements)}")
+            else:
+                self.log_test("Analytics Dashboard Structure", False, f"Missing sections: {dashboard_data.keys()}")
+        else:
+            self.log_test("Analytics Dashboard", False, f"Status: {status_code}, Error: {dashboard_data}")
+        
+        print("\n" + "🔬" * 30)
+        print("PHASE 4: ADVANCED ANALYTICS SYSTEM TEST COMPLETE")
+        print("🔬" * 30)
+
+    def test_phase4_social_sharing_system(self):
+        """📱 PHASE 4: Test Social Sharing System - Multi-platform content generation"""
+        print("\n" + "📱" * 30)
+        print("PHASE 4: SOCIAL SHARING SYSTEM TESTING")
+        print("Testing: Sharing config, content generation, platform templates, sharing history")
+        print("📱" * 30)
+        
+        # STEP 1: Test Social Sharing Configuration
+        print("\n🔧 STEP 1: Test Social Sharing Configuration")
+        
+        success, config_data, status_code = self.make_request("GET", "/social/sharing-config")
+        
+        if success and status_code == 200:
+            required_sections = ["platforms", "share_templates"]
+            if all(section in config_data for section in required_sections):
+                self.log_test("Social Sharing Config", True, "Complete sharing configuration retrieved")
+                
+                # Check platform configurations
+                platforms = config_data.get("platforms", {})
+                expected_platforms = ["twitter", "linkedin", "facebook", "instagram"]
+                if all(platform in platforms for platform in expected_platforms):
+                    self.log_test("Platform Configuration", True, f"All {len(expected_platforms)} platforms configured")
+                    
+                    # Verify platform details
+                    for platform_name, platform_config in platforms.items():
+                        required_fields = ["name", "icon", "character_limit", "hashtags", "base_url"]
+                        if all(field in platform_config for field in required_fields):
+                            char_limit = platform_config["character_limit"]
+                            hashtag_count = len(platform_config["hashtags"])
+                            self.log_test(f"{platform_name.title()} Platform Config", True, f"Limit: {char_limit} chars, {hashtag_count} hashtags")
+                        else:
+                            self.log_test(f"{platform_name.title()} Platform Config", False, f"Missing fields: {platform_config.keys()}")
+                else:
+                    self.log_test("Platform Configuration", False, f"Missing platforms: {platforms.keys()}")
+                
+                # Check share templates
+                share_templates = config_data.get("share_templates", {})
+                expected_templates = ["badge_unlock", "streak_milestone", "level_achievement", "challenge_completion"]
+                if all(template in share_templates for template in expected_templates):
+                    self.log_test("Share Templates", True, f"All {len(expected_templates)} template types configured")
+                    
+                    # Verify template structure
+                    for template_name, template_config in share_templates.items():
+                        if "title" in template_config and "templates" in template_config:
+                            template_platforms = template_config["templates"]
+                            if all(platform in template_platforms for platform in expected_platforms):
+                                self.log_test(f"{template_name.title()} Template", True, f"Templates for all {len(expected_platforms)} platforms")
+                            else:
+                                self.log_test(f"{template_name.title()} Template", False, f"Missing platform templates: {template_platforms.keys()}")
+                        else:
+                            self.log_test(f"{template_name.title()} Template", False, "Missing title or templates")
+                else:
+                    self.log_test("Share Templates", False, f"Missing templates: {share_templates.keys()}")
+            else:
+                self.log_test("Social Sharing Config", False, f"Missing sections: {config_data.keys()}")
+        else:
+            self.log_test("Social Sharing Config", False, f"Status: {status_code}, Error: {config_data}")
+            return
+        
+        # STEP 2: Test Social Share Content Generation
+        print("\n✨ STEP 2: Test Social Share Content Generation")
+        
+        if not self.test_user_id:
+            self.log_test("Social Share Generation", False, "No test user available")
+            return
+        
+        # Test badge unlock sharing
+        badge_share_request = {
+            "share_type": "badge_unlock",
+            "context": {
+                "badge_name": "Focus Master",
+                "badge_description": "Completed 100 focus sessions with excellence"
+            }
+        }
+        
+        success, share_data, status_code = self.make_request("POST", f"/users/{self.test_user_id}/social-share", badge_share_request)
+        
+        if success and status_code == 200:
+            if "share_type" in share_data and "platforms" in share_data:
+                self.log_test("Badge Share Generation", True, f"Generated content for {share_data['share_type']}")
+                
+                # Check platform-specific content
+                platforms = share_data.get("platforms", {})
+                expected_platforms = ["twitter", "linkedin", "facebook"]
+                
+                for platform in expected_platforms:
+                    if platform in platforms:
+                        platform_content = platforms[platform]
+                        required_fields = ["content", "url", "character_count", "platform_limit"]
+                        
+                        if all(field in platform_content for field in required_fields):
+                            char_count = platform_content["character_count"]
+                            char_limit = platform_content["platform_limit"]
+                            
+                            if char_count <= char_limit:
+                                self.log_test(f"{platform.title()} Content", True, f"{char_count}/{char_limit} characters")
+                            else:
+                                self.log_test(f"{platform.title()} Content", False, f"Content too long: {char_count}/{char_limit}")
+                            
+                            # Verify content includes context
+                            content = platform_content["content"]
+                            if "Focus Master" in content and "100 focus sessions" in content:
+                                self.log_test(f"{platform.title()} Context", True, "Context properly integrated")
+                            else:
+                                self.log_test(f"{platform.title()} Context", False, "Context missing from content")
+                        else:
+                            self.log_test(f"{platform.title()} Content", False, f"Missing fields: {platform_content.keys()}")
+                    else:
+                        self.log_test(f"{platform.title()} Content", False, f"Platform missing from response")
+            else:
+                self.log_test("Badge Share Generation", False, f"Invalid response structure: {share_data.keys()}")
+        else:
+            self.log_test("Badge Share Generation", False, f"Status: {status_code}, Error: {share_data}")
+        
+        # Test streak milestone sharing
+        streak_share_request = {
+            "share_type": "streak_milestone",
+            "context": {
+                "streak_days": 30
+            }
+        }
+        
+        success, streak_share_data, status_code = self.make_request("POST", f"/users/{self.test_user_id}/social-share", streak_share_request)
+        
+        if success and status_code == 200:
+            if "platforms" in streak_share_data:
+                twitter_content = streak_share_data["platforms"].get("twitter", {}).get("content", "")
+                if "30 day" in twitter_content and "streak" in twitter_content.lower():
+                    self.log_test("Streak Share Generation", True, "Streak milestone content generated correctly")
+                else:
+                    self.log_test("Streak Share Generation", False, f"Invalid streak content: {twitter_content}")
+            else:
+                self.log_test("Streak Share Generation", False, "Missing platforms in response")
+        else:
+            self.log_test("Streak Share Generation", False, f"Status: {status_code}, Error: {streak_share_data}")
+        
+        # Test level achievement sharing
+        level_share_request = {
+            "share_type": "level_achievement",
+            "context": {
+                "level": 15,
+                "xp": 1500
+            }
+        }
+        
+        success, level_share_data, status_code = self.make_request("POST", f"/users/{self.test_user_id}/social-share", level_share_request)
+        
+        if success and status_code == 200:
+            if "platforms" in level_share_data:
+                linkedin_content = level_share_data["platforms"].get("linkedin", {}).get("content", "")
+                if "Level 15" in linkedin_content and "1500" in linkedin_content:
+                    self.log_test("Level Share Generation", True, "Level achievement content generated correctly")
+                else:
+                    self.log_test("Level Share Generation", False, f"Invalid level content: {linkedin_content}")
+            else:
+                self.log_test("Level Share Generation", False, "Missing platforms in response")
+        else:
+            self.log_test("Level Share Generation", False, f"Status: {status_code}, Error: {level_share_data}")
+        
+        # STEP 3: Test Social Sharing History
+        print("\n📚 STEP 3: Test Social Sharing History")
+        
+        success, history_data, status_code = self.make_request("GET", f"/users/{self.test_user_id}/social-shares")
+        
+        if success and status_code == 200:
+            if isinstance(history_data, list):
+                self.log_test("Social Sharing History", True, f"Retrieved {len(history_data)} sharing records")
+                
+                # Verify sharing records if any exist
+                if len(history_data) > 0:
+                    share_record = history_data[0]
+                    required_fields = ["id", "user_id", "share_type", "context", "generated_at", "content"]
+                    
+                    if all(field in share_record for field in required_fields):
+                        self.log_test("Share Record Structure", True, f"Complete record: {share_record['share_type']}")
+                        
+                        # Verify user ID matches
+                        if share_record["user_id"] == self.test_user_id:
+                            self.log_test("Share Record User ID", True, "User ID matches")
+                        else:
+                            self.log_test("Share Record User ID", False, f"ID mismatch: {share_record['user_id']}")
+                    else:
+                        self.log_test("Share Record Structure", False, f"Missing fields: {share_record.keys()}")
+                else:
+                    self.log_test("Social Sharing History", True, "No sharing history yet (expected for new user)")
+            else:
+                self.log_test("Social Sharing History", False, f"Expected list, got: {type(history_data)}")
+        else:
+            self.log_test("Social Sharing History", False, f"Status: {status_code}, Error: {history_data}")
+        
+        # STEP 4: Test Character Limit Handling
+        print("\n✂️ STEP 4: Test Character Limit Handling")
+        
+        # Test with very long context that should be truncated
+        long_share_request = {
+            "share_type": "badge_unlock",
+            "context": {
+                "badge_name": "Super Ultra Mega Extremely Long Badge Name That Should Definitely Be Truncated",
+                "badge_description": "This is an extremely long badge description that contains way too much text and should definitely be truncated by the social sharing system to fit within the character limits of various social media platforms like Twitter which has a 280 character limit"
+            }
+        }
+        
+        success, long_share_data, status_code = self.make_request("POST", f"/users/{self.test_user_id}/social-share", long_share_request)
+        
+        if success and status_code == 200:
+            platforms = long_share_data.get("platforms", {})
+            
+            # Check Twitter truncation (280 char limit)
+            if "twitter" in platforms:
+                twitter_content = platforms["twitter"]
+                char_count = twitter_content.get("character_count", 0)
+                char_limit = twitter_content.get("platform_limit", 280)
+                
+                if char_count <= char_limit:
+                    self.log_test("Twitter Character Limit", True, f"Content properly truncated: {char_count}/{char_limit}")
+                else:
+                    self.log_test("Twitter Character Limit", False, f"Content too long: {char_count}/{char_limit}")
+            
+            # Check LinkedIn (higher limit)
+            if "linkedin" in platforms:
+                linkedin_content = platforms["linkedin"]
+                char_count = linkedin_content.get("character_count", 0)
+                char_limit = linkedin_content.get("platform_limit", 1300)
+                
+                if char_count <= char_limit:
+                    self.log_test("LinkedIn Character Limit", True, f"Content within limit: {char_count}/{char_limit}")
+                else:
+                    self.log_test("LinkedIn Character Limit", False, f"Content too long: {char_count}/{char_limit}")
+        else:
+            self.log_test("Character Limit Handling", False, f"Status: {status_code}, Error: {long_share_data}")
+        
+        print("\n" + "📱" * 30)
+        print("PHASE 4: SOCIAL SHARING SYSTEM TEST COMPLETE")
+        print("📱" * 30)
+
+    def test_phase4_cloud_sync_multi_device_system(self):
+        """☁️ PHASE 4: Test Cloud Sync & Multi-Device System - Cross-device data synchronization"""
+        print("\n" + "☁️" * 30)
+        print("PHASE 4: CLOUD SYNC & MULTI-DEVICE SYSTEM TESTING")
+        print("Testing: Sync config, device management, data synchronization, conflict resolution")
+        print("☁️" * 30)
+        
+        # STEP 1: Test Cloud Sync Configuration
+        print("\n⚙️ STEP 1: Test Cloud Sync Configuration")
+        
+        success, config_data, status_code = self.make_request("GET", "/cloud-sync/config")
+        
+        if success and status_code == 200:
+            required_sections = ["sync_strategies", "data_categories", "device_management"]
+            if all(section in config_data for section in required_sections):
+                self.log_test("Cloud Sync Config", True, "Complete sync configuration retrieved")
+                
+                # Check sync strategies
+                sync_strategies = config_data.get("sync_strategies", {})
+                expected_strategies = ["real_time", "periodic", "on_demand"]
+                if all(strategy in sync_strategies for strategy in expected_strategies):
+                    self.log_test("Sync Strategies", True, f"All {len(expected_strategies)} strategies configured")
+                    
+                    # Verify strategy details
+                    for strategy_name, strategy_config in sync_strategies.items():
+                        required_fields = ["name", "description", "update_frequency", "conflict_resolution", "data_types"]
+                        if all(field in strategy_config for field in required_fields):
+                            data_types_count = len(strategy_config["data_types"])
+                            self.log_test(f"{strategy_name.title()} Strategy", True, f"{data_types_count} data types, {strategy_config['update_frequency']} frequency")
+                        else:
+                            self.log_test(f"{strategy_name.title()} Strategy", False, f"Missing fields: {strategy_config.keys()}")
+                else:
+                    self.log_test("Sync Strategies", False, f"Missing strategies: {sync_strategies.keys()}")
+                
+                # Check data categories
+                data_categories = config_data.get("data_categories", {})
+                expected_categories = ["critical", "important", "supplementary"]
+                if all(category in data_categories for category in expected_categories):
+                    self.log_test("Data Categories", True, f"All {len(expected_categories)} categories configured")
+                    
+                    # Verify category priorities
+                    priorities = [data_categories[cat]["priority"] for cat in expected_categories]
+                    if priorities == [1, 2, 3]:
+                        self.log_test("Category Priorities", True, "Correct priority order: critical(1), important(2), supplementary(3)")
+                    else:
+                        self.log_test("Category Priorities", False, f"Invalid priorities: {priorities}")
+                else:
+                    self.log_test("Data Categories", False, f"Missing categories: {data_categories.keys()}")
+                
+                # Check device management settings
+                device_management = config_data.get("device_management", {})
+                if device_management.get("max_devices") == 5:
+                    self.log_test("Device Management Config", True, f"Max devices: {device_management['max_devices']}")
+                else:
+                    self.log_test("Device Management Config", False, f"Invalid max devices: {device_management.get('max_devices')}")
+            else:
+                self.log_test("Cloud Sync Config", False, f"Missing sections: {config_data.keys()}")
+        else:
+            self.log_test("Cloud Sync Config", False, f"Status: {status_code}, Error: {config_data}")
+            return
+        
+        # STEP 2: Test Device Registration and Management
+        print("\n📱 STEP 2: Test Device Registration and Management")
+        
+        if not self.test_user_id:
+            self.log_test("Device Management", False, "No test user available")
+            return
+        
+        # Test initial device list (should be empty)
+        success, devices_data, status_code = self.make_request("GET", f"/users/{self.test_user_id}/devices")
+        
+        if success and status_code == 200:
+            if isinstance(devices_data, list):
+                initial_device_count = len(devices_data)
+                self.log_test("Initial Device List", True, f"Retrieved {initial_device_count} registered devices")
+            else:
+                self.log_test("Initial Device List", False, f"Expected list, got: {type(devices_data)}")
+        else:
+            self.log_test("Initial Device List", False, f"Status: {status_code}, Error: {devices_data}")
+        
+        # STEP 3: Test Data Synchronization
+        print("\n🔄 STEP 3: Test Data Synchronization")
+        
+        # Test sync with desktop device
+        desktop_sync_request = {
+            "device_id": "desktop-001",
+            "device_type": "desktop",
+            "sync_type": "periodic",
+            "data_types": ["user_profile", "tasks", "badges"],
+            "app_version": "1.0.0"
+        }
+        
+        success, sync_data, status_code = self.make_request("POST", f"/users/{self.test_user_id}/sync-data", desktop_sync_request)
+        
+        if success and status_code == 200:
+            required_fields = ["sync_timestamp", "device_id", "sync_type", "data_types_synced", "data"]
+            if all(field in sync_data for field in required_fields):
+                self.log_test("Desktop Sync", True, f"Synced {len(sync_data['data_types_synced'])} data types")
+                
+                # Verify device ID matches
+                if sync_data["device_id"] == "desktop-001":
+                    self.log_test("Device ID Tracking", True, "Device ID correctly tracked")
+                else:
+                    self.log_test("Device ID Tracking", False, f"ID mismatch: {sync_data['device_id']}")
+                
+                # Check synced data
+                synced_data = sync_data.get("data", {})
+                expected_data_types = ["user_profile", "tasks", "badges"]
+                
+                for data_type in expected_data_types:
+                    if data_type in synced_data:
+                        if data_type == "user_profile" and synced_data[data_type]:
+                            self.log_test(f"{data_type.title()} Sync", True, "User profile data synced")
+                        elif data_type == "tasks" and isinstance(synced_data[data_type], list):
+                            task_count = len(synced_data[data_type])
+                            self.log_test(f"{data_type.title()} Sync", True, f"{task_count} tasks synced")
+                        elif data_type == "badges" and isinstance(synced_data[data_type], list):
+                            badge_count = len(synced_data[data_type])
+                            self.log_test(f"{data_type.title()} Sync", True, f"{badge_count} badges synced")
+                        else:
+                            self.log_test(f"{data_type.title()} Sync", True, f"{data_type} data present")
+                    else:
+                        self.log_test(f"{data_type.title()} Sync", False, f"Missing {data_type} data")
+            else:
+                self.log_test("Desktop Sync", False, f"Missing fields: {sync_data.keys()}")
+        else:
+            self.log_test("Desktop Sync", False, f"Status: {status_code}, Error: {sync_data}")
+        
+        # Test sync with mobile device (different data types)
+        mobile_sync_request = {
+            "device_id": "mobile-001",
+            "device_type": "mobile",
+            "sync_type": "real_time",
+            "data_types": ["user_profile", "inventory"],
+            "app_version": "1.0.0"
+        }
+        
+        success, mobile_sync_data, status_code = self.make_request("POST", f"/users/{self.test_user_id}/sync-data", mobile_sync_request)
+        
+        if success and status_code == 200:
+            if "data" in mobile_sync_data:
+                mobile_data = mobile_sync_data["data"]
+                if "inventory" in mobile_data:
+                    self.log_test("Mobile Inventory Sync", True, "Inventory data synced to mobile")
+                else:
+                    self.log_test("Mobile Inventory Sync", False, "Inventory data missing")
+                
+                # Verify sync type
+                if mobile_sync_data.get("sync_type") == "real_time":
+                    self.log_test("Real-time Sync Type", True, "Real-time sync strategy applied")
+                else:
+                    self.log_test("Real-time Sync Type", False, f"Wrong sync type: {mobile_sync_data.get('sync_type')}")
+            else:
+                self.log_test("Mobile Sync", False, "Missing data in mobile sync response")
+        else:
+            self.log_test("Mobile Sync", False, f"Status: {status_code}, Error: {mobile_sync_data}")
+        
+        # Test full sync (all data types)
+        full_sync_request = {
+            "device_id": "web-001",
+            "device_type": "web",
+            "sync_type": "on_demand",
+            "data_types": [],  # Empty means all data types
+            "app_version": "1.0.0"
+        }
+        
+        success, full_sync_data, status_code = self.make_request("POST", f"/users/{self.test_user_id}/sync-data", full_sync_request)
+        
+        if success and status_code == 200:
+            synced_types = full_sync_data.get("data_types_synced", [])
+            if len(synced_types) >= 3:  # Should sync at least user_profile, tasks, badges, inventory
+                self.log_test("Full Data Sync", True, f"Synced {len(synced_types)} data types: {', '.join(synced_types)}")
+            else:
+                self.log_test("Full Data Sync", False, f"Only synced {len(synced_types)} types: {synced_types}")
+        else:
+            self.log_test("Full Data Sync", False, f"Status: {status_code}, Error: {full_sync_data}")
+        
+        # STEP 4: Test Device List After Registration
+        print("\n📋 STEP 4: Test Device List After Registration")
+        
+        success, updated_devices, status_code = self.make_request("GET", f"/users/{self.test_user_id}/devices")
+        
+        if success and status_code == 200:
+            if isinstance(updated_devices, list):
+                device_count = len(updated_devices)
+                if device_count >= 3:  # Should have desktop, mobile, web devices
+                    self.log_test("Device Registration", True, f"{device_count} devices registered")
+                    
+                    # Verify device details
+                    device_types = [device.get("device_type") for device in updated_devices]
+                    expected_types = ["desktop", "mobile", "web"]
+                    
+                    for expected_type in expected_types:
+                        if expected_type in device_types:
+                            self.log_test(f"{expected_type.title()} Device", True, f"{expected_type} device registered")
+                        else:
+                            self.log_test(f"{expected_type.title()} Device", False, f"{expected_type} device not found")
+                    
+                    # Check device sync timestamps
+                    devices_with_sync = [d for d in updated_devices if "last_sync" in d]
+                    if len(devices_with_sync) == device_count:
+                        self.log_test("Device Sync Timestamps", True, "All devices have sync timestamps")
+                    else:
+                        self.log_test("Device Sync Timestamps", False, f"Only {len(devices_with_sync)}/{device_count} devices have timestamps")
+                else:
+                    self.log_test("Device Registration", False, f"Expected 3+ devices, got {device_count}")
+            else:
+                self.log_test("Device Registration", False, f"Expected list, got: {type(updated_devices)}")
+        else:
+            self.log_test("Device Registration", False, f"Status: {status_code}, Error: {updated_devices}")
+        
+        # STEP 5: Test Sync Strategy Validation
+        print("\n🔍 STEP 5: Test Sync Strategy Validation")
+        
+        # Test invalid sync request (missing device_id)
+        invalid_sync_request = {
+            "sync_type": "periodic",
+            "data_types": ["user_profile"]
+        }
+        
+        success, error_response, status_code = self.make_request("POST", f"/users/{self.test_user_id}/sync-data", invalid_sync_request)
+        
+        if status_code == 400:
+            if "device_id" in str(error_response).lower():
+                self.log_test("Sync Validation", True, "Missing device_id correctly rejected")
+            else:
+                self.log_test("Sync Validation", False, f"Wrong error message: {error_response}")
+        else:
+            self.log_test("Sync Validation", False, f"Expected 400, got {status_code}: {error_response}")
+        
+        # STEP 6: Test Multi-Device Limit
+        print("\n🚫 STEP 6: Test Multi-Device Limit (Max 5 devices)")
+        
+        # Try to register additional devices to test limit
+        device_ids = ["tablet-001", "laptop-001", "phone-002"]
+        
+        for i, device_id in enumerate(device_ids):
+            sync_request = {
+                "device_id": device_id,
+                "device_type": "tablet" if "tablet" in device_id else ("laptop" if "laptop" in device_id else "mobile"),
+                "sync_type": "periodic",
+                "data_types": ["user_profile"],
+                "app_version": "1.0.0"
+            }
+            
+            success, sync_response, status_code = self.make_request("POST", f"/users/{self.test_user_id}/sync-data", sync_request)
+            
+            if success and status_code == 200:
+                self.log_test(f"Additional Device {i+1}", True, f"Device {device_id} registered")
+            else:
+                # This might fail if we hit the 5-device limit, which is expected behavior
+                if status_code == 429 or "limit" in str(sync_response).lower():
+                    self.log_test(f"Device Limit Enforcement", True, f"Device limit properly enforced at device {i+4}")
+                    break
+                else:
+                    self.log_test(f"Additional Device {i+1}", False, f"Status: {status_code}, Error: {sync_response}")
+        
+        print("\n" + "☁️" * 30)
+        print("PHASE 4: CLOUD SYNC & MULTI-DEVICE SYSTEM TEST COMPLETE")
+        print("☁️" * 30)
+
     def test_critical_end_to_end_referral_flow(self):
         """🎯 CRITICAL END-TO-END REFERRAL TEST: Complete user-to-user referral flow with $5 commission"""
         print("\n" + "🎯" * 30)
