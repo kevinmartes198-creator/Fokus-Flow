@@ -2409,7 +2409,16 @@ const AppContent = ({ isSubscriptionSuccess, currentView, setCurrentView, loadin
         <div className="nav-brand">
           <h2>FocusFlow</h2>
           {user?.subscription_tier === 'premium' && (
-            <span className="premium-badge">PREMIUM</span>
+            <span className="premium-badge legacy">LEGACY PREMIUM</span>
+          )}
+          {user?.subscription_tier === 'premium_monthly' && (
+            <span className="premium-badge monthly">PREMIUM</span>
+          )}
+          {user?.subscription_tier === 'premium_yearly' && (
+            <span className="premium-badge yearly">YEARLY</span>
+          )}
+          {user?.subscription_tier === 'premium_lifetime' && (
+            <span className="premium-badge lifetime">LIFETIME</span>
           )}
         </div>
         
