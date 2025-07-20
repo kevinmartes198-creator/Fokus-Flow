@@ -245,6 +245,13 @@ async def create_database_indexes():
         # Purchase indexes
         await db.in_app_purchases.create_index([("user_id", 1), ("created_at", -1)])
         
+        # Project and Kanban indexes
+        await db.projects.create_index([("user_id", 1), ("created_at", -1)])
+        await db.projects.create_index([("id", 1)], unique=True)
+        await db.kanban_tasks.create_index([("project_id", 1), ("column", 1), ("position", 1)])
+        await db.kanban_tasks.create_index([("user_id", 1), ("created_at", -1)])
+        await db.kanban_tasks.create_index([("id", 1)], unique=True)
+        
         logger.info("Database indexes created successfully")
         
     except Exception as e:
