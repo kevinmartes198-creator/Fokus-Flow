@@ -1434,6 +1434,13 @@ class FocusFlowTester:
         self.test_premium_achievements()
         self.test_productivity_adaptive_themes()
         
+        # NEW EUR PRICING SYSTEM TEST
+        print("\n" + "🇪🇺" * 20)
+        print("NEW EUR PRICING SYSTEM TEST")
+        print("🇪🇺" * 20)
+        
+        self.test_eur_pricing_system()
+        
         # CRITICAL END-TO-END REFERRAL COMMISSION SYSTEM TEST
         print("\n" + "🎯" * 20)
         print("CRITICAL END-TO-END REFERRAL COMMISSION SYSTEM TEST")
