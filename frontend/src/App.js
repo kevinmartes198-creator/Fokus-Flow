@@ -1507,27 +1507,6 @@ const App = () => {
     initializeApp();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="app-loading">
-        <div className="loading-spinner"></div>
-        <p>Loading FocusFlow...</p>
-      </div>
-    );
-  }
-
-  // Handle subscription success page
-  if (isSubscriptionSuccess) {
-    const contextValue = { user, updateUserStats };
-    return (
-      <AppContext.Provider value={contextValue}>
-        <div className={`app theme-${theme.primary}`}>
-          <SubscriptionSuccessHandler />
-        </div>
-      </AppContext.Provider>
-    );
-  }
-
   const contextValue = {
     user,
     setUser,
@@ -1541,54 +1520,91 @@ const App = () => {
   };
 
   return (
-    <AppContext.Provider value={contextValue}>
-      <div className={`app theme-${theme.primary}`}>
-        <nav className="navigation">
-          <div className="nav-brand">
-            <h2>FocusFlow</h2>
-            {user.subscription_tier === 'premium' && (
-              <span className="premium-badge">PREMIUM</span>
-            )}
-          </div>
-          
-          <div className="nav-items">
-            <button
-              className={`nav-item ${currentView === 'dashboard' ? 'nav-item-active' : 'nav-item-inactive'}`}
-              onClick={() => setCurrentView('dashboard')}
-            >
-              <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-              </svg>
-              Dashboard
-            </button>
-            <button
-              className={`nav-item ${currentView === 'tasks' ? 'nav-item-active' : 'nav-item-inactive'}`}
-              onClick={() => setCurrentView('tasks')}
-            >
-              <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v8a1 1 0 01-1 1H4a1 1 0 01-1-1V8z" clipRule="evenodd" />
-              </svg>
-              Tasks
-            </button>
-            <button
-              className={`nav-item ${currentView === 'focus' ? 'nav-item-active' : 'nav-item-inactive'}`}
-              onClick={() => setCurrentView('focus')}
-            >
-              <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-              </svg>
-              Focus
-            </button>
-          </div>
-        </nav>
+    <LanguageProvider>
+      <AppContext.Provider value={contextValue}>
+        <AppContent 
+          isSubscriptionSuccess={isSubscriptionSuccess}
+          currentView={currentView}
+          setCurrentView={setCurrentView}
+          loading={loading}
+          user={user}
+          theme={theme}
+        />
+      </AppContext.Provider>
+    </LanguageProvider>
+  );
+};
 
-        <main className="main-content">
-          {currentView === 'dashboard' && <Dashboard />}
-          {currentView === 'tasks' && <TaskManager />}
-          {currentView === 'focus' && <PomodoroSession />}
-        </main>
+const AppContent = ({ isSubscriptionSuccess, currentView, setCurrentView, loading, user, theme }) => {
+  const { t } = useLanguage();
+
+  if (loading) {
+    return (
+      <div className="app-loading">
+        <div className="loading-spinner"></div>
+        <p>{t('loadingApp')}</p>
       </div>
-    </AppContext.Provider>
+    );
+  }
+
+  // Handle subscription success page
+  if (isSubscriptionSuccess) {
+    return (
+      <div className={`app theme-${theme.primary}`}>
+        <SubscriptionSuccessHandler />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`app theme-${theme.primary}`}>
+      <nav className="navigation">
+        <div className="nav-brand">
+          <h2>FocusFlow</h2>
+          {user?.subscription_tier === 'premium' && (
+            <span className="premium-badge">PREMIUM</span>
+          )}
+        </div>
+        
+        <div className="nav-items">
+          <button
+            className={`nav-item ${currentView === 'dashboard' ? 'nav-item-active' : 'nav-item-inactive'}`}
+            onClick={() => setCurrentView('dashboard')}
+          >
+            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+            </svg>
+            {t('dashboard')}
+          </button>
+          <button
+            className={`nav-item ${currentView === 'tasks' ? 'nav-item-active' : 'nav-item-inactive'}`}
+            onClick={() => setCurrentView('tasks')}
+          >
+            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v8a1 1 0 01-1 1H4a1 1 0 01-1-1V8z" clipRule="evenodd" />
+            </svg>
+            {t('tasks')}
+          </button>
+          <button
+            className={`nav-item ${currentView === 'focus' ? 'nav-item-active' : 'nav-item-inactive'}`}
+            onClick={() => setCurrentView('focus')}
+          >
+            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+            </svg>
+            {t('focus')}
+          </button>
+          
+          <LanguageSwitcher />
+        </div>
+      </nav>
+
+      <main className="main-content">
+        {currentView === 'dashboard' && <Dashboard />}
+        {currentView === 'tasks' && <TaskManager />}
+        {currentView === 'focus' && <PomodoroSession />}
+      </main>
+    </div>
   );
 };
 
