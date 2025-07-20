@@ -262,109 +262,13 @@ def get_productivity_theme(user_data: dict):
     else:
         return {"name": "Fresh Start", "primary": "purple", "secondary": "indigo"}
 
-# Models
-class Task(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str
-    title: str
-    description: Optional[str] = ""
-    status: TaskStatus = TaskStatus.pending
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    completed_at: Optional[datetime] = None
-    xp_earned: int = 10
-
-class TaskCreate(BaseModel):
-    title: str
-    description: Optional[str] = ""
-
-class TaskUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    status: Optional[TaskStatus] = None
-
-class FocusSession(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str
-    timer_type: TimerType
-    duration_minutes: int
-    completed: bool = False
-    started_at: datetime = Field(default_factory=datetime.utcnow)
-    completed_at: Optional[datetime] = None
-    xp_earned: int = 25
-
-class FocusSessionCreate(BaseModel):
-    timer_type: TimerType
-    duration_minutes: int
-
-class User(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    name: str
-    email: str
-    subscription_tier: SubscriptionTier = SubscriptionTier.free
-    subscription_expires_at: Optional[datetime] = None
-    total_xp: int = 0
-    current_streak: int = 0
-    best_streak: int = 0
-    level: int = 1
-    tasks_completed: int = 0
-    focus_sessions_completed: int = 0
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    last_activity_date: Optional[datetime] = None
-
-class UserCreate(BaseModel):
-    name: str
-    email: str
-
-class Achievement(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str
-    achievement_type: str
-    title: str
-    description: str
-    xp_reward: int
-    unlocked_at: datetime = Field(default_factory=datetime.utcnow)
-
-class PaymentTransaction(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str
-    session_id: str
-    package_id: str
-    amount: float
-    currency: str
-    payment_status: PaymentStatus = PaymentStatus.pending
-    stripe_payment_intent_id: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    completed_at: Optional[datetime] = None
-    metadata: Dict[str, Any] = {}
-
-class SubscriptionRequest(BaseModel):
-    package_id: str
-    origin_url: str
-
-class CustomTimerPreset(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str
-    name: str
-    focus_minutes: int
-    short_break_minutes: int
-    long_break_minutes: int
-    is_active: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-
-class CustomTimerCreate(BaseModel):
-    name: str
-    focus_minutes: int
-    short_break_minutes: int
-    long_break_minutes: int
-
-class DailyStats(BaseModel):
-    date: datetime
-    tasks_completed: int = 0
-    focus_sessions_completed: int = 0
-    total_focus_time: int = 0
-    xp_earned: int = 0
-
 # Helper functions
+def generate_referral_code(user_id: str, email: str) -> str:
+    """Generate a unique referral code for a user"""
+    # Create a hash from user ID and email, then take first 8 characters
+    hash_input = f"{user_id}{email}{secrets.token_hex(8)}"
+    return hashlib.md5(hash_input.encode()).hexdigest()[:8].upper()
+
 def get_level_from_xp(xp: int) -> int:
     """Calculate level based on XP (100 XP per level)"""
     return max(1, (xp // 100) + 1)
