@@ -2155,6 +2155,174 @@ async def get_user_daily_challenges(user_id: str):
         "total_challenges": len(challenges_status)
     }
 
+# Phase 4 Advanced Features API Endpoints
+
+@app.get("/api/analytics/system-config")
+async def get_analytics_system_config():
+    """Get analytics system configuration"""
+    return ANALYTICS_SYSTEM
+
+@app.get("/api/users/{user_id}/productivity-score")
+async def get_user_productivity_score(user_id: str):
+    """Get user's comprehensive productivity score"""
+    return await calculate_productivity_score(user_id)
+
+@app.get("/api/users/{user_id}/focus-patterns")
+async def get_user_focus_patterns(user_id: str):
+    """Get detailed focus patterns analysis"""
+    return await generate_focus_patterns_analysis(user_id)
+
+@app.get("/api/users/{user_id}/analytics-dashboard")
+async def get_analytics_dashboard(user_id: str):
+    """Get complete analytics dashboard data"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get all analytics components
+    productivity_score = await calculate_productivity_score(user_id)
+    focus_patterns = await generate_focus_patterns_analysis(user_id)
+    
+    # Get recent achievements and badges
+    recent_badges = await db.user_badges.find({"user_id": user_id}).sort("awarded_at", -1).limit(5).to_list(5)
+    badge_count = await db.user_badges.count_documents({"user_id": user_id})
+    
+    # Get activity summary (last 30 days)
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    recent_tasks = await db.tasks.count_documents({
+        "user_id": user_id,
+        "completed": True,
+        "completed_at": {"$gte": thirty_days_ago.isoformat()}
+    })
+    
+    recent_sessions = await db.focus_sessions.count_documents({
+        "user_id": user_id,
+        "created_at": {"$gte": thirty_days_ago}
+    })
+    
+    return {
+        "user_id": user_id,
+        "generated_at": datetime.utcnow(),
+        "productivity_score": productivity_score,
+        "focus_patterns": focus_patterns,
+        "activity_summary": {
+            "tasks_completed_30d": recent_tasks,
+            "focus_sessions_30d": recent_sessions,
+            "current_level": user.get("level", 1),
+            "total_xp": user.get("total_xp", 0),
+            "current_streak": user.get("current_streak", 0),
+            "badges_earned": badge_count
+        },
+        "recent_achievements": [
+            {
+                "name": badge["badge_data"]["name"],
+                "icon": badge["badge_data"]["icon"],
+                "awarded_at": badge["awarded_at"]
+            }
+            for badge in recent_badges
+        ]
+    }
+
+@app.get("/api/social/sharing-config")
+async def get_social_sharing_config():
+    """Get social sharing system configuration"""
+    return SOCIAL_SHARING
+
+@app.post("/api/users/{user_id}/social-share")
+async def create_social_share(user_id: str, request: dict):
+    """Generate social sharing content"""
+    share_type = request.get("share_type")
+    context = request.get("context", {})
+    
+    if not share_type:
+        raise HTTPException(status_code=400, detail="Missing share_type")
+    
+    share_content = await create_social_share_content(user_id, share_type, context)
+    
+    # Log the share attempt
+    share_log = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "share_type": share_type,
+        "context": context,
+        "generated_at": datetime.utcnow(),
+        "content": share_content
+    }
+    
+    await db.social_shares.insert_one(share_log)
+    
+    return share_content
+
+@app.get("/api/users/{user_id}/social-shares")
+async def get_user_social_shares(user_id: str):
+    """Get user's social sharing history"""
+    shares = await db.social_shares.find({"user_id": user_id}).sort("generated_at", -1).limit(20).to_list(20)
+    return shares
+
+@app.get("/api/cloud-sync/config")
+async def get_cloud_sync_config():
+    """Get cloud sync system configuration"""
+    return CLOUD_SYNC
+
+@app.get("/api/users/{user_id}/devices")
+async def get_user_devices(user_id: str):
+    """Get user's registered devices"""
+    devices = await db.user_devices.find({"user_id": user_id}).to_list(None)
+    return devices
+
+@app.post("/api/users/{user_id}/sync-data")
+async def sync_user_data(user_id: str, request: dict):
+    """Perform data synchronization for user"""
+    device_id = request.get("device_id")
+    sync_type = request.get("sync_type", "periodic")
+    data_types = request.get("data_types", [])
+    
+    if not device_id:
+        raise HTTPException(status_code=400, detail="Missing device_id")
+    
+    # Register/update device
+    device_info = {
+        "device_id": device_id,
+        "user_id": user_id,
+        "device_type": request.get("device_type", "web"),
+        "last_sync": datetime.utcnow(),
+        "sync_type": sync_type,
+        "app_version": request.get("app_version", "1.0.0")
+    }
+    
+    await db.user_devices.update_one(
+        {"user_id": user_id, "device_id": device_id},
+        {"$set": device_info},
+        upsert=True
+    )
+    
+    # Get data to sync based on requested types
+    sync_data = {}
+    
+    if not data_types or "user_profile" in data_types:
+        user = await db.users.find_one({"id": user_id})
+        sync_data["user_profile"] = user
+    
+    if not data_types or "tasks" in data_types:
+        tasks = await db.tasks.find({"user_id": user_id}).limit(100).to_list(100)
+        sync_data["tasks"] = tasks
+    
+    if not data_types or "badges" in data_types:
+        badges = await db.user_badges.find({"user_id": user_id}).to_list(None)
+        sync_data["badges"] = badges
+    
+    if not data_types or "inventory" in data_types:
+        inventory = await get_user_inventory(user_id)
+        sync_data["inventory"] = inventory.dict()
+    
+    return {
+        "sync_timestamp": datetime.utcnow(),
+        "device_id": device_id,
+        "sync_type": sync_type,
+        "data_types_synced": list(sync_data.keys()),
+        "data": sync_data
+    }
+
 @api_router.post("/subscription/checkout")
 async def create_subscription_checkout(request: SubscriptionRequest):
     """Create Stripe checkout session for subscription with referral tracking"""
