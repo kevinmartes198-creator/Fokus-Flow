@@ -2302,6 +2302,9 @@ const AppContent = ({ isSubscriptionSuccess, currentView, setCurrentView, loadin
 
   return (
     <div className={`app theme-${theme.primary}`}>
+      {/* Top Referral Earnings Banner */}
+      <TopReferralBanner currentView={currentView} setCurrentView={setCurrentView} />
+      
       <nav className="navigation">
         <div className="nav-brand">
           <h2>FocusFlow</h2>
@@ -2345,7 +2348,7 @@ const AppContent = ({ isSubscriptionSuccess, currentView, setCurrentView, loadin
             <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 114 0 2 2 0 01-4 0zm8 0a2 2 0 114 0 2 2 0 01-4 0z" clipRule="evenodd" />
             </svg>
-            💰 Earn $5
+            💰 Referrals
           </button>
           
           <LanguageSwitcher />
