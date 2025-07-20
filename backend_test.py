@@ -1522,11 +1522,21 @@ class FocusFlowTester:
         # TEST 4: New Subscription Processing with Different Tiers
         print("\n💳 TEST 4: New Subscription Processing - Different Tiers")
         
+        # Create a referrer user for commission testing
+        referrer_data = {
+            "name": "Commission Test Referrer",
+            "email": "commission.test@focusflow.com"
+        }
+        
+        success, referrer_user, _ = self.make_request("POST", "/users", referrer_data)
+        referral_code = referrer_user.get("referral_code") if success else None
+        
         # Test checkout for each package type
         for package_id in ["monthly_premium", "yearly_premium", "lifetime_premium"]:
             checkout_data = {
                 "package_id": package_id,
-                "origin_url": "https://focusflow.app"
+                "origin_url": "https://focusflow.app",
+                "referral_code": referral_code  # Include referral code for commission testing
             }
             
             success, checkout_response, status_code = self.make_request("POST", "/subscription/checkout", checkout_data)
