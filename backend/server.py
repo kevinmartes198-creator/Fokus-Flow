@@ -350,6 +350,102 @@ def generate_referral_code(user_id: str, email: str) -> str:
     hash_input = f"{user_id}{email}{secrets.token_hex(8)}"
     return hashlib.md5(hash_input.encode()).hexdigest()[:8].upper()
 
+async def get_user_inventory(user_id: str) -> UserInventory:
+    """Get or create user inventory"""
+    inventory = await db.user_inventory.find_one({"user_id": user_id})
+    if not inventory:
+        new_inventory = UserInventory(user_id=user_id)
+        await db.user_inventory.insert_one(new_inventory.dict())
+        return new_inventory
+    return UserInventory(**inventory)
+
+async def apply_purchase_rewards(user_id: str, product_id: str):
+    """Apply rewards from in-app purchase to user"""
+    if product_id not in IN_APP_PRODUCTS:
+        return False
+    
+    product = IN_APP_PRODUCTS[product_id]
+    reward = product["reward"]
+    inventory = await get_user_inventory(user_id)
+    user = await db.users.find_one({"id": user_id})
+    
+    updates = {}
+    inventory_updates = {}
+    
+    # Apply different types of rewards
+    if "xp" in reward:
+        # Instant XP boost
+        new_xp = user["total_xp"] + reward["xp"]
+        new_level = (new_xp // 100) + 1
+        updates.update({
+            "total_xp": new_xp,
+            "level": new_level
+        })
+    
+    if "streak_protection_days" in reward:
+        # Streak protection
+        protection_until = datetime.utcnow() + timedelta(days=reward["streak_protection_days"])
+        inventory_updates["streak_protection_until"] = protection_until
+    
+    if "themes" in reward:
+        # Unlock themes
+        current_themes = set(inventory.themes)
+        new_themes = set(reward["themes"])
+        inventory_updates["themes"] = list(current_themes.union(new_themes))
+    
+    if "sounds" in reward:
+        # Unlock sound packs
+        current_sounds = set(inventory.sounds)
+        new_sounds = set(reward["sounds"])
+        inventory_updates["sounds"] = list(current_sounds.union(new_sounds))
+    
+    if "powerups" in reward:
+        # Add powerups to inventory
+        for powerup in reward["powerups"]:
+            powerup_type = powerup["type"]
+            current_count = inventory.powerups.get(powerup_type, 0)
+            inventory.powerups[powerup_type] = current_count + powerup["count"]
+        inventory_updates["powerups"] = inventory.powerups
+    
+    if "instant_achievements" in reward:
+        # Unlock random achievements + bonus XP
+        bonus_xp = reward.get("bonus_xp", 0)
+        achievement_count = reward["instant_achievements"]
+        
+        # Add bonus XP
+        current_xp = updates.get("total_xp", user["total_xp"])
+        new_xp = current_xp + bonus_xp
+        new_level = (new_xp // 100) + 1
+        updates.update({
+            "total_xp": new_xp,
+            "level": new_level
+        })
+        
+        # Track achievement accelerator usage
+        inventory_updates["instant_achievements_used"] = inventory.instant_achievements_used + achievement_count
+    
+    # Update user if needed
+    if updates:
+        await db.users.update_one({"id": user_id}, {"$set": updates})
+    
+    # Update inventory if needed
+    if inventory_updates:
+        inventory_updates["updated_at"] = datetime.utcnow()
+        await db.user_inventory.update_one(
+            {"user_id": user_id}, 
+            {"$set": inventory_updates},
+            upsert=True
+        )
+    
+    return True
+
+async def check_streak_protection(user_id: str) -> bool:
+    """Check if user has active streak protection"""
+    inventory = await get_user_inventory(user_id)
+    if inventory.streak_protection_until:
+        return datetime.utcnow() < inventory.streak_protection_until
+    return False
+
 def get_level_from_xp(xp: int) -> int:
     """Calculate level based on XP (100 XP per level)"""
     return max(1, (xp // 100) + 1)
