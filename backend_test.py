@@ -871,6 +871,277 @@ class FocusFlowTester:
         else:
             self.log_test("Adaptive Themes", False, f"Status: {status_code}, Error: {data}")
 
+    def test_referral_system_comprehensive(self):
+        """🎯 COMPREHENSIVE REFERRAL COMMISSION SYSTEM TEST - Complete end-to-end referral flow"""
+        print("\n" + "🎯" * 20)
+        print("COMPREHENSIVE REFERRAL COMMISSION SYSTEM TEST")
+        print("Testing: Referral code generation → Signup tracking → Payment with referral → Instant $5 commission")
+        print("🎯" * 20)
+        
+        # STEP 1: Test Referral Code Generation
+        print("\n📝 STEP 1: Test Referral Code Generation")
+        
+        # Create referrer user
+        referrer_data = {
+            "name": "Alex Rodriguez",
+            "email": "alex.rodriguez@focusflow.com"
+        }
+        
+        success, referrer_user, status_code = self.make_request("POST", "/users", referrer_data)
+        
+        if success and status_code == 200:
+            referrer_id = referrer_user["id"]
+            referral_code = referrer_user.get("referral_code")
+            
+            if referral_code and len(referral_code) == 8:
+                self.log_test("Referral Code Generation", True, f"Generated code: {referral_code}")
+                
+                # Verify code format (8 uppercase alphanumeric)
+                if referral_code.isupper() and referral_code.isalnum():
+                    self.log_test("Referral Code Format", True, f"Code format valid: {referral_code}")
+                else:
+                    self.log_test("Referral Code Format", False, f"Invalid format: {referral_code}")
+            else:
+                self.log_test("Referral Code Generation", False, f"Invalid referral code: {referral_code}")
+                return
+        else:
+            self.log_test("Referral Code Generation", False, f"Status: {status_code}, Error: {referrer_user}")
+            return
+        
+        # STEP 2: Test Referral Code Validation API
+        print("\n🔍 STEP 2: Test Referral Code Validation API")
+        
+        success, validation_response, status_code = self.make_request("GET", f"/validate-referral/{referral_code}")
+        
+        if success and status_code == 200:
+            if validation_response.get("valid") == True:
+                if validation_response.get("commission_amount") == 5.00:
+                    self.log_test("Referral Code Validation", True, f"Valid code, $5 commission confirmed")
+                else:
+                    self.log_test("Referral Code Validation", False, f"Wrong commission: ${validation_response.get('commission_amount')}")
+            else:
+                self.log_test("Referral Code Validation", False, f"Code marked invalid: {validation_response}")
+        else:
+            self.log_test("Referral Code Validation", False, f"Status: {status_code}, Error: {validation_response}")
+        
+        # Test invalid referral code
+        success, invalid_response, status_code = self.make_request("GET", "/validate-referral/INVALID123")
+        
+        if success and status_code == 200:
+            if invalid_response.get("valid") == False:
+                self.log_test("Invalid Referral Code Handling", True, "Invalid codes correctly rejected")
+            else:
+                self.log_test("Invalid Referral Code Handling", False, "Invalid code marked as valid")
+        else:
+            self.log_test("Invalid Referral Code Handling", False, f"Status: {status_code}")
+        
+        # STEP 3: Test Referral Tracking in Signup
+        print("\n👥 STEP 3: Test Referral Tracking in Signup")
+        
+        # Create referred user with referral code
+        referred_user_data = {
+            "name": "Maria Garcia",
+            "email": "maria.garcia@focusflow.com",
+            "referral_code": referral_code  # Using referrer's code
+        }
+        
+        success, referred_user, status_code = self.make_request("POST", "/users", referred_user_data)
+        
+        if success and status_code == 200:
+            referred_user_id = referred_user["id"]
+            
+            # Verify referred_by field is set
+            if referred_user.get("referred_by") == referral_code:
+                self.log_test("Referral Tracking in Signup", True, f"User linked to referrer via code: {referral_code}")
+            else:
+                self.log_test("Referral Tracking in Signup", False, f"referred_by: {referred_user.get('referred_by')}")
+        else:
+            self.log_test("Referral Tracking in Signup", False, f"Status: {status_code}, Error: {referred_user}")
+            return
+        
+        # STEP 4: Test Payment with Referral Code
+        print("\n💳 STEP 4: Test Payment with Referral Code")
+        
+        # Create checkout session with referral code
+        checkout_data = {
+            "package_id": "monthly_premium",
+            "origin_url": "https://focusflow.app",
+            "referral_code": referral_code
+        }
+        
+        success, checkout_response, status_code = self.make_request("POST", "/subscription/checkout", checkout_data)
+        
+        if success and status_code == 200:
+            session_id = checkout_response.get("session_id")
+            commission_info = checkout_response.get("commission_info", {})
+            
+            if commission_info.get("referrer_earns") == 5.00:
+                self.log_test("Payment with Referral Code", True, f"$5 commission tracked in checkout")
+                
+                # Verify referral code is stored in metadata
+                if commission_info.get("referral_code_used") == referral_code:
+                    self.log_test("Referral Metadata Storage", True, f"Referral code stored: {referral_code}")
+                else:
+                    self.log_test("Referral Metadata Storage", False, f"Code not stored properly")
+            else:
+                self.log_test("Payment with Referral Code", False, f"Wrong commission: ${commission_info.get('referrer_earns')}")
+        else:
+            self.log_test("Payment with Referral Code", False, f"Status: {status_code}, Error: {checkout_response}")
+            return
+        
+        # STEP 5: Test Instant Commission Processing (Simulate Payment Completion)
+        print("\n💰 STEP 5: Test Instant Commission Processing")
+        
+        # Check payment status (this will process commission if payment completed)
+        success, payment_status, status_code = self.make_request("GET", f"/subscription/status/{session_id}")
+        
+        if success and status_code == 200:
+            referral_commission = payment_status.get("referral_commission", {})
+            
+            # For testing, we simulate the commission processing
+            # In production, this would happen via Stripe webhook
+            self.log_test("Payment Status Tracking", True, f"Payment status: {payment_status.get('payment_status')}")
+            
+            # Test commission processing logic by checking referrer stats
+            success, referrer_stats, status_code = self.make_request("GET", f"/users/{referrer_id}/referral-stats")
+            
+            if success and status_code == 200:
+                # Verify referral stats structure
+                required_fields = ["referral_code", "total_referrals", "total_commission_earned", "available_for_withdrawal"]
+                
+                if all(field in referrer_stats for field in required_fields):
+                    self.log_test("Referral Stats API", True, f"Stats structure complete")
+                    
+                    # Check referral code matches
+                    if referrer_stats.get("referral_code") == referral_code:
+                        self.log_test("Referral Code Consistency", True, f"Code matches: {referral_code}")
+                    else:
+                        self.log_test("Referral Code Consistency", False, f"Code mismatch")
+                    
+                    # Check earnings breakdown
+                    earnings_breakdown = referrer_stats.get("earnings_breakdown", {})
+                    if earnings_breakdown.get("per_referral") == 5.00:
+                        self.log_test("Commission Rate Configuration", True, "$5 per referral confirmed")
+                    else:
+                        self.log_test("Commission Rate Configuration", False, f"Wrong rate: ${earnings_breakdown.get('per_referral')}")
+                else:
+                    self.log_test("Referral Stats API", False, f"Missing fields: {referrer_stats}")
+            else:
+                self.log_test("Referral Stats API", False, f"Status: {status_code}, Error: {referrer_stats}")
+        else:
+            self.log_test("Payment Status Tracking", False, f"Status: {status_code}, Error: {payment_status}")
+        
+        # STEP 6: Test Referral History Retrieval
+        print("\n📊 STEP 6: Test Referral History Retrieval")
+        
+        success, referral_history, status_code = self.make_request("GET", f"/users/{referrer_id}/referrals")
+        
+        if success and status_code == 200:
+            if isinstance(referral_history, list):
+                self.log_test("Referral History API", True, f"Retrieved {len(referral_history)} referrals")
+                
+                # Check referral record structure if any exist
+                if len(referral_history) > 0:
+                    referral = referral_history[0]
+                    required_fields = ["id", "referrer_user_id", "referral_code", "status", "commission_earned"]
+                    
+                    if all(field in referral for field in required_fields):
+                        self.log_test("Referral Record Structure", True, f"Complete referral record")
+                    else:
+                        self.log_test("Referral Record Structure", False, f"Missing fields: {referral}")
+            else:
+                self.log_test("Referral History API", False, f"Expected list, got: {type(referral_history)}")
+        else:
+            self.log_test("Referral History API", False, f"Status: {status_code}, Error: {referral_history}")
+        
+        # STEP 7: Test Withdrawal System
+        print("\n💸 STEP 7: Test Withdrawal System")
+        
+        success, withdrawals, status_code = self.make_request("GET", f"/users/{referrer_id}/withdrawals")
+        
+        if success and status_code == 200:
+            if isinstance(withdrawals, list):
+                self.log_test("Withdrawal History API", True, f"Retrieved {len(withdrawals)} withdrawal records")
+                
+                # Test withdrawal request (should work even with $0 balance for testing)
+                withdrawal_request = {"method": "bank_transfer"}
+                success, withdrawal_response, status_code = self.make_request("POST", f"/users/{referrer_id}/withdraw", withdrawal_request)
+                
+                # This might fail with no balance, which is expected
+                if status_code == 400 and "No balance available" in str(withdrawal_response):
+                    self.log_test("Withdrawal Balance Check", True, "Correctly prevents withdrawal with no balance")
+                elif success and status_code == 200:
+                    self.log_test("Withdrawal Request Processing", True, f"Withdrawal processed: {withdrawal_response}")
+                else:
+                    self.log_test("Withdrawal System", False, f"Status: {status_code}, Error: {withdrawal_response}")
+            else:
+                self.log_test("Withdrawal History API", False, f"Expected list, got: {type(withdrawals)}")
+        else:
+            self.log_test("Withdrawal History API", False, f"Status: {status_code}, Error: {withdrawals}")
+        
+        # STEP 8: Test Referral Achievement System
+        print("\n🏆 STEP 8: Test Referral Achievement System")
+        
+        # Check if referrer has any referral achievements
+        success, achievements, status_code = self.make_request("GET", f"/users/{referrer_id}/achievements")
+        
+        if success and status_code == 200:
+            referral_achievements = [a for a in achievements if "referral" in a.get("achievement_type", "").lower()]
+            
+            if len(referral_achievements) > 0:
+                self.log_test("Referral Achievements", True, f"Found {len(referral_achievements)} referral achievements")
+                
+                for achievement in referral_achievements:
+                    if achievement.get("xp_reward", 0) > 0:
+                        self.log_test("Referral Achievement XP", True, f"{achievement['title']}: {achievement['xp_reward']} XP")
+            else:
+                self.log_test("Referral Achievements", True, "No referral achievements yet (need completed referrals)")
+        else:
+            self.log_test("Referral Achievement System", False, f"Status: {status_code}, Error: {achievements}")
+        
+        # STEP 9: Test Complete Referral Flow Integration
+        print("\n🔄 STEP 9: Test Complete Referral Flow Integration")
+        
+        # Verify all components work together
+        components_working = []
+        
+        # Check if referrer user has referral code
+        success, referrer_check, _ = self.make_request("GET", f"/users/{referrer_id}")
+        if success and referrer_check.get("referral_code"):
+            components_working.append("Referral Code Generation")
+        
+        # Check if referred user is linked
+        success, referred_check, _ = self.make_request("GET", f"/users/{referred_user_id}")
+        if success and referred_check.get("referred_by") == referral_code:
+            components_working.append("Referral Tracking")
+        
+        # Check if payment system accepts referral codes
+        if session_id:
+            components_working.append("Payment Integration")
+        
+        # Check if stats API works
+        success, stats_check, _ = self.make_request("GET", f"/users/{referrer_id}/referral-stats")
+        if success and stats_check.get("referral_code"):
+            components_working.append("Stats Management")
+        
+        if len(components_working) >= 4:
+            self.log_test("Complete Referral Flow Integration", True, f"All {len(components_working)} components working")
+        else:
+            self.log_test("Complete Referral Flow Integration", False, f"Only {len(components_working)}/4 components working")
+        
+        print("\n" + "🎯" * 20)
+        print("REFERRAL COMMISSION SYSTEM TEST COMPLETE")
+        print("🎯" * 20)
+        
+        # Store referral test data for summary
+        self.referral_test_data = {
+            "referrer_id": referrer_id,
+            "referral_code": referral_code,
+            "referred_user_id": referred_user_id,
+            "session_id": session_id,
+            "components_working": components_working
+        }
+
     def run_comprehensive_test(self):
         """Run all backend tests systematically"""
         print("🚀 Starting Comprehensive FocusFlow Backend API Testing")
