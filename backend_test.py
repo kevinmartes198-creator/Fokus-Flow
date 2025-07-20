@@ -2032,6 +2032,13 @@ class FocusFlowTester:
         
         self.test_critical_end_to_end_referral_flow()
         
+        # NEW PHASE 3 GAMIFICATION SYSTEM TEST
+        print("\n" + "🎮" * 20)
+        print("NEW PHASE 3 GAMIFICATION SYSTEM TEST")
+        print("🎮" * 20)
+        
+        self.test_phase3_gamification_system()
+        
         # Summary
         print("\n" + "=" * 60)
         print("📋 TEST SUMMARY")
