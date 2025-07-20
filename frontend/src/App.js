@@ -666,6 +666,451 @@ const TopReferralBanner = ({ currentView, setCurrentView }) => {
   );
 };
 
+// Analytics Dashboard Component
+const AnalyticsDashboard = () => {
+  const { user } = useAppContext();
+  const { t } = useLanguage();
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [productivityScore, setProductivityScore] = useState(null);
+  const [focusPatterns, setFocusPatterns] = useState(null);
+  const [socialSharing, setSocialSharing] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [selectedView, setSelectedView] = useState('overview');
+
+  useEffect(() => {
+    if (user) {
+      fetchAnalyticsData();
+    }
+  }, [user]);
+
+  const fetchAnalyticsData = async () => {
+    try {
+      setLoading(true);
+      
+      const [dashboardRes, scoreRes, patternsRes] = await Promise.all([
+        axios.get(`${API}/users/${user.id}/analytics-dashboard`),
+        axios.get(`${API}/users/${user.id}/productivity-score`),
+        axios.get(`${API}/users/${user.id}/focus-patterns`)
+      ]);
+      
+      setAnalyticsData(dashboardRes.data);
+      setProductivityScore(scoreRes.data);
+      setFocusPatterns(patternsRes.data);
+    } catch (error) {
+      console.error('Error fetching analytics data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSocialShare = async (shareType, context) => {
+    try {
+      const response = await axios.post(`${API}/users/${user.id}/social-share`, {
+        share_type: shareType,
+        context: context
+      });
+      
+      setSocialSharing(response.data);
+      
+      // Show sharing modal or options
+      const shareModal = document.createElement('div');
+      shareModal.className = 'share-modal';
+      shareModal.innerHTML = `
+        <div class="share-modal-content">
+          <h3>📱 Share Your Achievement!</h3>
+          <div class="share-platforms">
+            ${Object.entries(response.data.platforms).map(([platform, data]) => `
+              <a href="${data.url}" target="_blank" class="share-platform-btn">
+                ${data.icon} Share on ${platform}
+              </a>
+            `).join('')}
+          </div>
+          <button onclick="this.parentElement.parentElement.remove()">Close</button>
+        </div>
+      `;
+      
+      document.body.appendChild(shareModal);
+      
+      // Remove modal after 10 seconds
+      setTimeout(() => {
+        if (document.body.contains(shareModal)) {
+          document.body.removeChild(shareModal);
+        }
+      }, 10000);
+      
+    } catch (error) {
+      console.error('Error creating social share:', error);
+    }
+  };
+
+  const getProductivityLevel = (score) => {
+    if (!productivityScore) return { level: 'loading', icon: '⏳' };
+    return productivityScore.level_info;
+  };
+
+  const formatTime = (minutes) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  if (loading) {
+    return (
+      <div className="analytics-dashboard">
+        <div className="loading">Loading analytics...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="analytics-dashboard">
+      <div className="analytics-header">
+        <h1>📊 Analytics Dashboard</h1>
+        <p>Deep insights into your productivity patterns and progress</p>
+        
+        <div className="analytics-nav">
+          <button 
+            className={`analytics-nav-btn ${selectedView === 'overview' ? 'active' : ''}`}
+            onClick={() => setSelectedView('overview')}
+          >
+            📈 Overview
+          </button>
+          <button 
+            className={`analytics-nav-btn ${selectedView === 'patterns' ? 'active' : ''}`}
+            onClick={() => setSelectedView('patterns')}
+          >
+            🎯 Focus Patterns
+          </button>
+          <button 
+            className={`analytics-nav-btn ${selectedView === 'achievements' ? 'active' : ''}`}
+            onClick={() => setSelectedView('achievements')}
+          >
+            🏆 Achievements
+          </button>
+          <button 
+            className={`analytics-nav-btn ${selectedView === 'social' ? 'active' : ''}`}
+            onClick={() => setSelectedView('social')}
+          >
+            📱 Share Progress
+          </button>
+        </div>
+      </div>
+
+      {selectedView === 'overview' && (
+        <div className="analytics-section">
+          {/* Productivity Score Card */}
+          {productivityScore && (
+            <div className="productivity-score-card">
+              <div className="score-header">
+                <h2>🎯 Productivity Score</h2>
+                <button 
+                  className="share-btn"
+                  onClick={() => handleSocialShare('level_achievement', {
+                    level: user.level,
+                    xp: user.total_xp
+                  })}
+                >
+                  📱 Share
+                </button>
+              </div>
+              
+              <div className="score-display">
+                <div className="score-circle">
+                  <div className="score-number">{productivityScore.score}</div>
+                  <div className="score-level">{productivityScore.level}</div>
+                  <div className="score-icon">{getProductivityLevel().icon}</div>
+                </div>
+                
+                <div className="score-breakdown">
+                  <div className="component">
+                    <span>Task Completion</span>
+                    <div className="component-bar">
+                      <div 
+                        className="component-fill"
+                        style={{width: `${productivityScore.components.task_completion}%`}}
+                      ></div>
+                    </div>
+                    <span>{Math.round(productivityScore.components.task_completion)}%</span>
+                  </div>
+                  
+                  <div className="component">
+                    <span>Focus Consistency</span>
+                    <div className="component-bar">
+                      <div 
+                        className="component-fill"
+                        style={{width: `${productivityScore.components.focus_consistency}%`}}
+                      ></div>
+                    </div>
+                    <span>{Math.round(productivityScore.components.focus_consistency)}%</span>
+                  </div>
+                  
+                  <div className="component">
+                    <span>Streak Maintenance</span>
+                    <div className="component-bar">
+                      <div 
+                        className="component-fill"
+                        style={{width: `${productivityScore.components.streak_maintenance}%`}}
+                      ></div>
+                    </div>
+                    <span>{Math.round(productivityScore.components.streak_maintenance)}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Activity Summary */}
+          {analyticsData && (
+            <div className="activity-summary-grid">
+              <div className="summary-card">
+                <div className="summary-icon">📋</div>
+                <div className="summary-content">
+                  <div className="summary-number">{analyticsData.activity_summary.tasks_completed_30d}</div>
+                  <div className="summary-label">Tasks (30 days)</div>
+                </div>
+              </div>
+              
+              <div className="summary-card">
+                <div className="summary-icon">🎯</div>
+                <div className="summary-content">
+                  <div className="summary-number">{analyticsData.activity_summary.focus_sessions_30d}</div>
+                  <div className="summary-label">Focus Sessions</div>
+                </div>
+              </div>
+              
+              <div className="summary-card">
+                <div className="summary-icon">⭐</div>
+                <div className="summary-content">
+                  <div className="summary-number">Level {analyticsData.activity_summary.current_level}</div>
+                  <div className="summary-label">{analyticsData.activity_summary.total_xp} XP</div>
+                </div>
+              </div>
+              
+              <div className="summary-card">
+                <div className="summary-icon">🔥</div>
+                <div className="summary-content">
+                  <div className="summary-number">{analyticsData.activity_summary.current_streak}</div>
+                  <div className="summary-label">Day Streak</div>
+                </div>
+              </div>
+              
+              <div className="summary-card">
+                <div className="summary-icon">🏆</div>
+                <div className="summary-content">
+                  <div className="summary-number">{analyticsData.activity_summary.badges_earned}</div>
+                  <div className="summary-label">Badges Earned</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {selectedView === 'patterns' && focusPatterns && (
+        <div className="analytics-section">
+          <div className="patterns-grid">
+            <div className="pattern-card">
+              <h3>🕐 Peak Focus Time</h3>
+              <div className="pattern-highlight">
+                <div className="highlight-value">{focusPatterns.peak_focus_time}</div>
+                <div className="highlight-label">Most productive hour</div>
+              </div>
+              <p className="pattern-insight">
+                You focus best at {focusPatterns.peak_focus_time}. 
+                Try scheduling important tasks during this window.
+              </p>
+            </div>
+            
+            <div className="pattern-card">
+              <h3>⏱️ Optimal Session Length</h3>
+              <div className="pattern-highlight">
+                <div className="highlight-value">{Math.round(focusPatterns.average_session_length)}min</div>
+                <div className="highlight-label">Average session</div>
+              </div>
+              <p className="pattern-insight">
+                Your sessions average {Math.round(focusPatterns.average_session_length)} minutes. 
+                This seems to work well for your focus style.
+              </p>
+            </div>
+            
+            <div className="pattern-card">
+              <h3>📅 Best Day</h3>
+              <div className="pattern-highlight">
+                <div className="highlight-value">{focusPatterns.most_productive_day}</div>
+                <div className="highlight-label">Most productive</div>
+              </div>
+              <p className="pattern-insight">
+                {focusPatterns.most_productive_day} is your most productive day. 
+                Plan challenging tasks for this day.
+              </p>
+            </div>
+            
+            <div className="pattern-card">
+              <h3>📊 Session Analysis</h3>
+              <div className="pattern-highlight">
+                <div className="highlight-value">{focusPatterns.sessions_analyzed}</div>
+                <div className="highlight-label">Sessions analyzed</div>
+              </div>
+              <p className="pattern-insight">
+                Based on your last {focusPatterns.sessions_analyzed} sessions 
+                over the past 30 days.
+              </p>
+            </div>
+          </div>
+
+          {/* Recommendations */}
+          <div className="recommendations-card">
+            <h3>💡 Personalized Recommendations</h3>
+            <div className="recommendations-list">
+              <div className="recommendation">
+                <div className="rec-icon">🎯</div>
+                <div className="rec-content">
+                  <div className="rec-title">Optimal Session Length</div>
+                  <div className="rec-desc">
+                    Try {focusPatterns.recommendations.optimal_session_length}-minute sessions 
+                    based on your patterns
+                  </div>
+                </div>
+              </div>
+              
+              <div className="recommendation">
+                <div className="rec-icon">🕐</div>
+                <div className="rec-content">
+                  <div className="rec-title">Peak Focus Window</div>
+                  <div className="rec-desc">
+                    Schedule your most important work during 
+                    {focusPatterns.recommendations.best_focus_window}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="recommendation">
+                <div className="rec-icon">📅</div>
+                <div className="rec-content">
+                  <div className="rec-title">Consistency Tip</div>
+                  <div className="rec-desc">
+                    {focusPatterns.recommendations.consistency_tip}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedView === 'achievements' && analyticsData && (
+        <div className="analytics-section">
+          <div className="achievements-overview">
+            <h3>🏆 Recent Achievements</h3>
+            
+            {analyticsData.recent_achievements.length > 0 ? (
+              <div className="recent-achievements-grid">
+                {analyticsData.recent_achievements.map((achievement, index) => (
+                  <div key={index} className="achievement-card">
+                    <div className="achievement-icon">{achievement.icon}</div>
+                    <div className="achievement-info">
+                      <div className="achievement-name">{achievement.name}</div>
+                      <div className="achievement-date">
+                        {new Date(achievement.awarded_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <button 
+                      className="share-achievement-btn"
+                      onClick={() => handleSocialShare('badge_unlock', {
+                        badge_name: achievement.name,
+                        badge_description: `Earned this achievement through consistent productivity!`
+                      })}
+                    >
+                      📱
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="no-achievements">
+                <div className="empty-state">
+                  <span className="empty-icon">🏆</span>
+                  <p>No recent achievements</p>
+                  <p>Keep up your productivity to unlock badges!</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {selectedView === 'social' && (
+        <div className="analytics-section">
+          <div className="social-sharing-section">
+            <h3>📱 Share Your Progress</h3>
+            <p>Celebrate your achievements and inspire others!</p>
+            
+            <div className="share-options-grid">
+              <div className="share-option">
+                <div className="share-icon">🔥</div>
+                <div className="share-content">
+                  <div className="share-title">Share Streak</div>
+                  <div className="share-desc">
+                    Celebrate your {user.current_streak} day consistency streak
+                  </div>
+                </div>
+                <button 
+                  className="share-btn"
+                  onClick={() => handleSocialShare('streak_milestone', {
+                    streak_days: user.current_streak
+                  })}
+                >
+                  Share
+                </button>
+              </div>
+              
+              <div className="share-option">
+                <div className="share-icon">📈</div>
+                <div className="share-content">
+                  <div className="share-title">Share Level</div>
+                  <div className="share-desc">
+                    Show off your Level {user.level} achievement
+                  </div>
+                </div>
+                <button 
+                  className="share-btn"
+                  onClick={() => handleSocialShare('level_achievement', {
+                    level: user.level,
+                    xp: user.total_xp
+                  })}
+                >
+                  Share
+                </button>
+              </div>
+              
+              {productivityScore && (
+                <div className="share-option">
+                  <div className="share-icon">🎯</div>
+                  <div className="share-content">
+                    <div className="share-title">Share Score</div>
+                    <div className="share-desc">
+                      Share your {productivityScore.score} productivity score
+                    </div>
+                  </div>
+                  <button 
+                    className="share-btn"
+                    onClick={() => handleSocialShare('level_achievement', {
+                      level: productivityScore.level,
+                      xp: productivityScore.score
+                    })}
+                  >
+                    Share
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Badges Dashboard Component
 const BadgesDashboard = () => {
   const { user } = useAppContext();
