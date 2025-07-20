@@ -2034,7 +2034,7 @@ const SinglePageDashboard = () => {
   const { today_stats, level_progress, recent_achievements, premium_features, theme } = dashboardData;
   const pendingTasks = tasks.filter(t => t.status === 'pending');
   const completedTasks = tasks.filter(t => t.status === 'completed');
-  const xpAmount = user?.subscription_tier === 'premium' ? '12' : '10';
+  const xpAmount = isPremiumUser(user?.subscription_tier) ? '12' : '10';
 
   return (
     <div className="single-page-dashboard">
