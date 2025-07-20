@@ -66,15 +66,41 @@ class CommissionStatus(str, Enum):
     paid = "paid"
     cancelled = "cancelled"
 
-# Subscription packages with referral commissions
+# Subscription packages with referral commissions - EUR Pricing
 SUBSCRIPTION_PACKAGES = {
     "monthly_premium": {
         "amount": 9.99,
-        "currency": "usd",
+        "currency": "eur",
         "name": "Premium Monthly",
-        "description": "Unlock all premium features including custom timers, advanced themes, and premium sounds",
+        "description": "Power-User Features: Alle Timer, Themes, XP-Boost, Cloud-Backup, Premium-Achievements",
         "duration_months": 1,
-        "commission_amount": 5.00  # $5 commission per referral
+        "commission_amount": 5.00,  # €5 commission per referral
+        "tier": "premium_monthly",
+        "badge": "monthly_supporter"
+    },
+    "yearly_premium": {
+        "amount": 89.99,
+        "currency": "eur", 
+        "name": "Premium Yearly",
+        "description": "Sparfüchse & loyale Nutzer: Alle Monthly Features + 2 Monate gratis + exklusives Yearly-Badge",
+        "duration_months": 12,
+        "commission_amount": 15.00,  # €15 commission per yearly referral
+        "tier": "premium_yearly",
+        "badge": "yearly_supporter",
+        "savings": "2 Monate gratis!",
+        "monthly_equivalent": 7.50
+    },
+    "lifetime_premium": {
+        "amount": 199.99,
+        "currency": "eur",
+        "name": "Lifetime Deal",
+        "description": "Early Supporter Special: Alles für immer + exklusives Lifetime-Supporter Badge",
+        "duration_months": 999,  # Effectively lifetime
+        "commission_amount": 25.00,  # €25 commission per lifetime referral
+        "tier": "premium_lifetime", 
+        "badge": "lifetime_supporter",
+        "savings": "Sonderaktion - Nur für kurze Zeit!",
+        "is_special": True
     }
 }
 
