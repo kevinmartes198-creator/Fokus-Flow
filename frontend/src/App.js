@@ -629,31 +629,31 @@ const TopReferralBanner = ({ currentView, setCurrentView }) => {
           <div className="earnings-display">
             <span className="earnings-icon">💰</span>
             <span className="earnings-text">
-              <strong>${referralStats.total_commission_earned.toFixed(2)}</strong> earned
+              <strong>${referralStats.total_commission_earned.toFixed(2)}</strong> {t('earned')}
             </span>
             <span className="divider">|</span>
             <span className="available-text">
-              ${referralStats.available_balance.toFixed(2)} available
+              ${referralStats.available_balance.toFixed(2)} {t('available')}
             </span>
           </div>
         </div>
         
         <div className="banner-center">
           <span className="banner-message">
-            Earn <strong>$5</strong> per Premium referral! Share: <strong>{referralStats.referral_code}</strong>
+            {t('earnPer')} <strong>$5</strong> {t('perReferral')} <strong>{referralStats.referral_code}</strong>
           </span>
         </div>
         
         <div className="banner-right">
           <LanguageSwitcher />
           <button className="copy-link-btn" onClick={copyReferralLink}>
-            Copy Link
+            {t('copyLink')}
           </button>
           <button 
             className="view-referrals-btn"
             onClick={() => setCurrentView('referrals')}
           >
-            View Details
+            {t('viewDetails')}
           </button>
         </div>
       </div>
