@@ -966,6 +966,71 @@ class UserInventory(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
+# Project Management Models
+class ProjectStatus(str, Enum):
+    active = "active"
+    completed = "completed"
+    archived = "archived"
+
+class TaskColumn(str, Enum):
+    todo = "todo"
+    in_progress = "in_progress"  
+    done = "done"
+
+class Project(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    name: str
+    description: Optional[str] = ""
+    color: str = "purple"  # Theme color for the project
+    status: ProjectStatus = ProjectStatus.active
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    
+class ProjectCreate(BaseModel):
+    name: str
+    description: Optional[str] = ""
+    color: str = "purple"
+
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    color: Optional[str] = None
+    status: Optional[ProjectStatus] = None
+
+class KanbanTask(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    project_id: str
+    title: str
+    description: Optional[str] = ""
+    column: TaskColumn = TaskColumn.todo
+    position: int = 0  # For ordering within column
+    priority: str = "medium"  # low, medium, high
+    due_date: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: Optional[datetime] = None
+
+class KanbanTaskCreate(BaseModel):
+    title: str
+    description: Optional[str] = ""
+    project_id: str
+    priority: str = "medium"
+    due_date: Optional[datetime] = None
+
+class KanbanTaskUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    column: Optional[TaskColumn] = None
+    position: Optional[int] = None
+    priority: Optional[str] = None
+    due_date: Optional[datetime] = None
+
+class TaskMoveRequest(BaseModel):
+    column: TaskColumn
+    position: int
+
 # Helper functions
 def generate_referral_code(user_id: str, email: str) -> str:
     """Generate a unique referral code for a user"""
