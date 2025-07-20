@@ -2622,12 +2622,12 @@ async def get_badge_progress(user_id: str):
     
     return progress_data
 
-@app.get("/api/gamification/daily-challenges")
+@api_router.get("/gamification/daily-challenges")
 async def get_daily_challenges():
     """Get available daily challenges"""
     return DAILY_CHALLENGES
 
-@app.get("/api/users/{user_id}/daily-challenges")
+@api_router.get("/users/{user_id}/daily-challenges")
 async def get_user_daily_challenges(user_id: str):
     """Get user's daily challenge progress"""
     user = await db.users.find_one({"id": user_id})
