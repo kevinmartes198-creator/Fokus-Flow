@@ -1964,45 +1964,8 @@ const SinglePageDashboard = () => {
 
   return (
     <div className="single-page-dashboard">
-      {/* Top Earnings Banner */}
-      {referralStats.available_for_withdrawal > 0 ? (
-        <div className="top-earnings-banner">
-          <div className="earnings-content">
-            <div className="earnings-icon">💰</div>
-            <div className="earnings-text">
-              <h3>Du hast ${referralStats.available_for_withdrawal.toFixed(2)} zum Abholen bereit!</h3>
-              <p>Deine Referral-Kommission wartet auf dich</p>
-            </div>
-            <button 
-              className="withdraw-now-btn"
-              onClick={() => setShowWithdrawModal(true)}
-            >
-              Jetzt Abholen
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="top-referral-banner">
-          <div className="referral-promo">
-            <div className="promo-icon">🚀</div>
-            <div className="promo-text">
-              <h3>Verdiene $5 pro Empfehlung!</h3>
-              <p>Teile FocusFlow und erhalte sofort Geld für jedes Premium-Abo</p>
-            </div>
-            <div className="promo-action">
-              <div className="referral-code-display">
-                <span className="referral-code">{referralStats.referral_code}</span>
-              </div>
-              <button className="copy-referral-btn" onClick={copyReferralLink}>
-                Link Kopieren
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Header with Language Switcher */}
-      <div className="dashboard-header-single">
+      {/* Header with Welcome Message */}
+      <div className="dashboard-header">
         <div className="user-welcome">
           <h1 className="welcome-text">{t('welcomeBack')}, {user.name}!</h1>
           <div className={`theme-badge theme-${theme.primary}`}>
@@ -2012,23 +1975,17 @@ const SinglePageDashboard = () => {
           </div>
         </div>
 
-        <div className="header-controls">
-          <div className="language-switcher-main">
-            <LanguageSwitcher />
-          </div>
-          
-          <div className="level-card-compact">
-            <div className="level-info">
-              <div className="level-number">Level {user.level}</div>
-              <div className="level-progress">
-                <div 
-                  className="level-progress-bar"
-                  style={{ width: `${level_progress.progress_percentage}%` }}
-                ></div>
-              </div>
+        <div className="level-card-compact">
+          <div className="level-info">
+            <div className="level-number">Level {user.level}</div>
+            <div className="level-progress">
+              <div 
+                className="level-progress-bar"
+                style={{ width: `${level_progress.progress_percentage}%` }}
+              ></div>
             </div>
-            <div className="total-xp">{user.total_xp} XP</div>
           </div>
+          <div className="total-xp">{user.total_xp} XP</div>
         </div>
       </div>
 
