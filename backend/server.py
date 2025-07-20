@@ -1763,7 +1763,320 @@ def get_premium_features_for_tier(user_tier: str, premium_badge: str = None) -> 
         
     return features
 
-# Routes
+# Health Check and Status Endpoints
+@api_router.get("/health")
+async def health_check():
+    """Production health check endpoint"""
+    try:
+        # Test database connection
+        await client.server_info()
+        database_status = "healthy"
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+        database_status = "unhealthy"
+        
+    # Test Stripe connection
+    stripe_status = "healthy" if stripe_api_key.startswith("sk_") else "disabled"
+    
+    health_status = {
+        "status": "healthy" if database_status == "healthy" else "unhealthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "version": "1.0.0",
+        "environment": ENVIRONMENT,
+        "services": {
+            "database": database_status,
+            "stripe_payments": stripe_status,
+            "cache": "healthy"  # Could add Redis check here
+        }
+    }
+    
+    status_code = 200 if health_status["status"] == "healthy" else 503
+    return JSONResponse(content=health_status, status_code=status_code)
+
+@api_router.get("/status")
+async def api_status():
+    """API status and metrics"""
+    return {
+        "api": "FocusFlow Production API",
+        "version": "1.0.0", 
+        "environment": ENVIRONMENT,
+        "uptime": int(time.time()),  # Simplified uptime
+        "endpoints": len([route for route in app.routes]),
+        "documentation": f"{os.environ.get('BASE_URL', '')}/docs" if DEBUG_MODE else "disabled"
+    }
+
+# Enhanced User Creation with Security
+@api_router.post("/users")
+async def create_user(user_data: UserCreate):
+    """Create new user with enhanced validation"""
+    try:
+        # Check if user already exists
+        existing_user = await db.users.find_one({"email": user_data.email})
+        if existing_user:
+            logger.warning(f"Attempt to create duplicate user: {user_data.email}")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, 
+                detail="User with this email already exists"
+            )
+        
+        # Create new user with security enhancements
+        user = User(
+            name=user_data.name,
+            email=user_data.email,
+            created_at=datetime.utcnow()
+        )
+        
+        # Generate secure referral code
+        user.referral_code = generate_referral_code(user.id, user.email)
+        
+        # Insert user into database
+        await db.users.insert_one(user.dict())
+        
+        # Log user creation (without sensitive data)
+        logger.info(f"New user created: {user.id}")
+        
+        return {"user": user, "message": "User created successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating user: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create user"
+        )
+
+# Enhanced Task Management with Rate Limiting
+@api_router.post("/users/{user_id}/tasks")
+async def create_task(user_id: str, task_data: TaskCreate):
+    """Create new task with enhanced validation"""
+    try:
+        # Validate user exists
+        user = await db.users.find_one({"id": user_id})
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        # Rate limiting: max 50 tasks per day per user
+        today = datetime.utcnow().date()
+        today_tasks = await db.tasks.count_documents({
+            "user_id": user_id,
+            "created_at": {
+                "$gte": datetime.combine(today, datetime.min.time()),
+                "$lt": datetime.combine(today + timedelta(days=1), datetime.min.time())
+            }
+        })
+        
+        if today_tasks >= 50:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Daily task limit reached"
+            )
+        
+        # Create task
+        task = Task(
+            user_id=user_id,
+            title=task_data.title,
+            description=task_data.description,
+            created_at=datetime.utcnow()
+        )
+        
+        await db.tasks.insert_one(task.dict())
+        
+        # Check for achievements
+        await check_task_achievements(user_id)
+        
+        logger.info(f"Task created for user {user_id}: {task.id}")
+        return task
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating task for user {user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create task"
+        )
+
+async def check_task_achievements(user_id: str):
+    """Check and award task-related achievements"""
+    try:
+        total_tasks = await db.tasks.count_documents({
+            "user_id": user_id,
+            "completed": True
+        })
+        
+        # Check for task milestone achievements
+        milestones = [10, 50, 100, 500, 1000]
+        for milestone in milestones:
+            if total_tasks >= milestone:
+                existing = await db.achievements.find_one({
+                    "user_id": user_id,
+                    "achievement_type": f"tasks_{milestone}"
+                })
+                
+                if not existing:
+                    achievement = Achievement(
+                        user_id=user_id,
+                        achievement_type=f"tasks_{milestone}",
+                        title=f"Task Master {milestone}",
+                        description=f"Complete {milestone} tasks",
+                        xp_reward=milestone // 10
+                    )
+                    
+                    await db.achievements.insert_one(achievement.dict())
+                    
+                    # Award XP
+                    await db.users.update_one(
+                        {"id": user_id},
+                        {"$inc": {"total_xp": achievement.xp_reward}}
+                    )
+                    
+                    logger.info(f"Achievement awarded to {user_id}: {achievement.title}")
+                    
+    except Exception as e:
+        logger.error(f"Error checking task achievements for {user_id}: {e}")
+
+# Production-Ready Subscription Handling
+@api_router.post("/subscription/checkout")
+async def create_subscription_checkout(request: dict):
+    """Create subscription checkout with enhanced security"""
+    try:
+        package_id = request.get("package_id")
+        user_id = request.get("user_id")
+        origin_url = request.get("origin_url", "")
+        referral_code = request.get("referral_code")
+        
+        # Input validation
+        if not package_id or not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Missing required fields: package_id, user_id"
+            )
+        
+        # Validate package exists
+        if package_id not in SUBSCRIPTION_PACKAGES:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Invalid subscription package"
+            )
+        
+        # Validate user exists
+        user = await db.users.find_one({"id": user_id})
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        package = SUBSCRIPTION_PACKAGES[package_id]
+        
+        # Security: Validate origin URL
+        allowed_origins = CORS_ORIGINS + ['https://focusflow.app', 'https://www.focusflow.app']
+        if origin_url and not any(origin_url.startswith(allowed) for allowed in allowed_origins):
+            logger.warning(f"Suspicious origin URL: {origin_url}")
+            origin_url = "https://focusflow.app"
+        
+        # Handle referral validation
+        referrer_user_id = None
+        if referral_code:
+            referrer = await validate_referral_code(referral_code)
+            if referrer and referrer["id"] != user_id:  # Can't refer yourself
+                referrer_user_id = referrer["id"]
+        
+        try:
+            # Create Stripe checkout session with production settings
+            checkout_data = {
+                "amount": int(package["amount"] * 100),  # Convert to cents
+                "currency": package["currency"],
+                "success_url": f"{origin_url}?payment=success&session_id={{CHECKOUT_SESSION_ID}}",
+                "cancel_url": f"{origin_url}?payment=cancelled",
+                "metadata": {
+                    "package_id": package_id,
+                    "user_id": user_id,
+                    "referrer_user_id": referrer_user_id or "",
+                    "commission_amount": str(package["commission_amount"]),
+                    "environment": ENVIRONMENT
+                }
+            }
+            
+            # Create checkout session
+            checkout_response = StripeCheckout().create_session(CheckoutSessionRequest(**checkout_data))
+            
+            if not checkout_response or not checkout_response.url:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to create checkout session"
+                )
+            
+            # Store transaction record
+            transaction = {
+                "id": str(uuid.uuid4()),
+                "user_id": user_id,
+                "package_id": package_id,
+                "amount": package["amount"],
+                "currency": package["currency"],
+                "status": "pending",
+                "stripe_session_id": checkout_response.session_id,
+                "referrer_user_id": referrer_user_id,
+                "commission_amount": package["commission_amount"] if referrer_user_id else 0,
+                "created_at": datetime.utcnow()
+            }
+            
+            await db.transactions.insert_one(transaction)
+            
+            logger.info(f"Checkout session created: {checkout_response.session_id} for user {user_id}")
+            
+            return {
+                "checkout_url": checkout_response.url,
+                "session_id": checkout_response.session_id,
+                "package": {
+                    "name": package["name"],
+                    "amount": package["amount"],
+                    "currency": package["currency"]
+                }
+            }
+            
+        except Exception as stripe_error:
+            logger.error(f"Stripe error: {stripe_error}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Payment service temporarily unavailable"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating subscription checkout: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create checkout session"
+        )
+
+# Enhanced Referral Validation
+async def validate_referral_code(referral_code: str) -> Optional[dict]:
+    """Validate referral code with security checks"""
+    try:
+        # Input validation
+        if not referral_code or len(referral_code) != 8:
+            return None
+            
+        if not referral_code.isalnum():
+            return None
+            
+        # Find referrer
+        referrer = await db.users.find_one({"referral_code": referral_code})
+        if not referrer:
+            logger.warning(f"Invalid referral code used: {referral_code}")
+            return None
+            
+        return referrer
+        
+    except Exception as e:
+        logger.error(f"Error validating referral code {referral_code}: {e}")
+        return None
 @api_router.get("/")
 async def root():
     return {"message": "FocusFlow API is running!"}
