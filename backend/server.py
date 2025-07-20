@@ -915,7 +915,7 @@ async def create_custom_timer(user_id: str, timer_data: CustomTimerCreate):
 @api_router.get("/users/{user_id}/custom-timers", response_model=List[CustomTimerPreset])
 async def get_user_custom_timers(user_id: str):
     user = await db.users.find_one({"id": user_id})
-    if not user or user.get("subscription_tier") != "premium":
+    if not user or not is_premium_user(user.get("subscription_tier")):
         return []
     
     timers = await db.custom_timers.find({"user_id": user_id, "is_active": True}).to_list(None)
