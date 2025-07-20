@@ -1720,21 +1720,216 @@ const TaskManager = () => {
   );
 };
 
-const Dashboard = () => {
-  const { user, dashboardData, theme } = useAppContext();
+const SinglePageDashboard = () => {
+  const { user, tasks, setTasks, dashboardData, updateUserStats } = useAppContext();
   const { t } = useLanguage();
+  
+  // Referral state
+  const [referralStats, setReferralStats] = useState(null);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  
+  // Task state
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDescription, setNewTaskDescription] = useState('');
+  
+  // Timer state
+  const [isActive, setIsActive] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [sessionType, setSessionType] = useState('focus');
+  const [currentSessionId, setCurrentSessionId] = useState(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
-  if (!dashboardData) {
-    return <div className="loading">{t('loading')} dashboard...</div>;
+  const sessionTypes = {
+    focus: { duration: 25 * 60, label: t('focusTime'), next: 'short_break' },
+    short_break: { duration: 5 * 60, label: t('shortBreak'), next: 'focus' },
+    long_break: { duration: 15 * 60, label: t('longBreak'), next: 'focus' }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchReferralData();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    let interval = null;
+    if (isActive && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft(timeLeft => timeLeft - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      handleSessionComplete();
+    }
+    return () => clearInterval(interval);
+  }, [isActive, timeLeft]);
+
+  const fetchReferralData = async () => {
+    try {
+      const response = await axios.get(`${API}/users/${user.id}/referral-stats`);
+      setReferralStats(response.data);
+    } catch (error) {
+      console.error('Error fetching referral data:', error);
+    }
+  };
+
+  // Timer functions
+  const startTimer = async () => {
+    if (!currentSessionId) {
+      try {
+        const response = await axios.post(`${API}/users/${user.id}/focus-sessions`, {
+          timer_type: sessionType,
+          duration_minutes: sessionTypes[sessionType].duration / 60
+        });
+        setCurrentSessionId(response.data.id);
+      } catch (error) {
+        console.error('Error starting session:', error);
+        return;
+      }
+    }
+    setIsActive(true);
+  };
+
+  const pauseTimer = () => setIsActive(false);
+  const resetTimer = () => {
+    setIsActive(false);
+    setTimeLeft(sessionTypes[sessionType].duration);
+    setCurrentSessionId(null);
+  };
+
+  const handleSessionComplete = async () => {
+    setIsActive(false);
+    if (currentSessionId && sessionType === 'focus') {
+      try {
+        await axios.put(`${API}/users/${user.id}/focus-sessions/${currentSessionId}/complete`);
+        updateUserStats();
+      } catch (error) {
+        console.error('Error completing session:', error);
+      }
+    }
+    const nextType = sessionTypes[sessionType].next;
+    setSessionType(nextType);
+    setTimeLeft(sessionTypes[nextType].duration);
+    setCurrentSessionId(null);
+  };
+
+  // Task functions
+  const addTask = async (e) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim()) return;
+
+    try {
+      const response = await axios.post(`${API}/users/${user.id}/tasks`, {
+        title: newTaskTitle.trim(),
+        description: newTaskDescription.trim()
+      });
+      setTasks([response.data, ...tasks]);
+      setNewTaskTitle('');
+      setNewTaskDescription('');
+    } catch (error) {
+      console.error('Error adding task:', error);
+    }
+  };
+
+  const toggleTask = async (taskId) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    try {
+      const response = await axios.put(`${API}/users/${user.id}/tasks/${taskId}`, {
+        status: task.status === 'completed' ? 'pending' : 'completed'
+      });
+      setTasks(tasks.map(t => t.id === taskId ? response.data : t));
+      if (response.data.status === 'completed') {
+        updateUserStats();
+      }
+    } catch (error) {
+      console.error('Error updating task:', error);
+    }
+  };
+
+  const deleteTask = async (taskId) => {
+    try {
+      await axios.delete(`${API}/users/${user.id}/tasks/${taskId}`);
+      setTasks(tasks.filter(t => t.id !== taskId));
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
+
+  const copyReferralLink = () => {
+    if (referralStats?.referral_link) {
+      navigator.clipboard.writeText(referralStats.referral_link);
+      alert('Referral link copied to clipboard!');
+    }
+  };
+
+  const requestWithdrawal = async () => {
+    try {
+      const response = await axios.post(`${API}/users/${user.id}/withdraw`, {
+        method: "bank_transfer"
+      });
+      if (response.data.amount > 0) {
+        alert(`Withdrawal request submitted for $${response.data.amount}!`);
+        fetchReferralData();
+        setShowWithdrawModal(false);
+      }
+    } catch (error) {
+      console.error('Error requesting withdrawal:', error);
+      alert('Error processing withdrawal request');
+    }
+  };
+
+  if (!dashboardData || !referralStats) {
+    return <div className="loading">{t('loadingApp')}</div>;
   }
 
-  const { today_stats, level_progress, recent_achievements, premium_features } = dashboardData;
+  const { today_stats, level_progress, recent_achievements, premium_features, theme } = dashboardData;
+  const pendingTasks = tasks.filter(t => t.status === 'pending');
+  const completedTasks = tasks.filter(t => t.status === 'completed');
+  const xpAmount = user?.subscription_tier === 'premium' ? '12' : '10';
 
   return (
-    <div className="dashboard">
-      <div className="dashboard-header">
-        <div className="user-info">
+    <div className="single-page-dashboard">
+      {/* Top Earnings Banner */}
+      {referralStats.available_for_withdrawal > 0 ? (
+        <div className="top-earnings-banner">
+          <div className="earnings-content">
+            <div className="earnings-icon">💰</div>
+            <div className="earnings-text">
+              <h3>Du hast ${referralStats.available_for_withdrawal.toFixed(2)} zum Abholen bereit!</h3>
+              <p>Deine Referral-Kommission wartet auf dich</p>
+            </div>
+            <button 
+              className="withdraw-now-btn"
+              onClick={() => setShowWithdrawModal(true)}
+            >
+              Jetzt Abholen
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="top-referral-banner">
+          <div className="referral-promo">
+            <div className="promo-icon">🚀</div>
+            <div className="promo-text">
+              <h3>Verdiene $5 pro Empfehlung!</h3>
+              <p>Teile FocusFlow und erhalte sofort Geld für jedes Premium-Abo</p>
+            </div>
+            <div className="promo-action">
+              <div className="referral-code-display">
+                <span className="referral-code">{referralStats.referral_code}</span>
+              </div>
+              <button className="copy-referral-btn" onClick={copyReferralLink}>
+                Link Kopieren
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header with Language Switcher */}
+      <div className="dashboard-header-single">
+        <div className="user-welcome">
           <h1 className="welcome-text">{t('welcomeBack')}, {user.name}!</h1>
           <div className={`theme-badge theme-${theme.primary}`}>
             {premium_features.productivity_themes ? 
@@ -1743,108 +1938,243 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="level-card">
-          <div className="level-info">
-            <div className="level-number">{t('level')} {user.level}</div>
-            <div className="level-progress">
-              <div 
-                className="level-progress-bar"
-                style={{ width: `${level_progress.progress_percentage}%` }}
-              ></div>
-            </div>
-            <div className="level-text">
-              {level_progress.xp_to_next_level} {t('xpToNext')} {user.level + 1}
-            </div>
+        <div className="header-controls">
+          <div className="language-switcher-main">
+            <LanguageSwitcher />
           </div>
-          <div className="total-xp">{user.total_xp} XP</div>
+          
+          <div className="level-card-compact">
+            <div className="level-info">
+              <div className="level-number">Level {user.level}</div>
+              <div className="level-progress">
+                <div 
+                  className="level-progress-bar"
+                  style={{ width: `${level_progress.progress_percentage}%` }}
+                ></div>
+              </div>
+            </div>
+            <div className="total-xp">{user.total_xp} XP</div>
+          </div>
         </div>
       </div>
 
-      <div className="stats-grid">
-        <StatsCard
-          title={t('todayTasks')}
-          value={today_stats.tasks_completed}
-          className="stats-card-tasks"
-        />
-        <StatsCard
-          title={t('focusSessions')}
-          value={today_stats.focus_sessions_completed}
-          className="stats-card-focus"
-        />
-        <StatsCard
-          title={t('focusTime')}
-          value={`${today_stats.total_focus_time}m`}
-          className="stats-card-time"
-        />
-        <StatsCard
-          title={t('currentStreak')}
-          value={user.current_streak}
-          subtitle={t('days')}
-          className="stats-card-streak"
-        />
+      {/* Quick Stats */}
+      <div className="quick-stats-grid">
+        <StatsCard title={t('todayTasks')} value={today_stats.tasks_completed} className="stats-card-tasks" />
+        <StatsCard title={t('focusSessions')} value={today_stats.focus_sessions_completed} className="stats-card-focus" />
+        <StatsCard title={t('focusTime')} value={`${today_stats.total_focus_time}m`} className="stats-card-time" />
+        <StatsCard title="💰 Verdient" value={`$${referralStats.total_commission_earned.toFixed(2)}`} className="stats-card-earnings" />
       </div>
 
-      {/* Premium Features Status */}
-      <div className="premium-status-section">
-        <h3 className="section-title">{t('yourPlan')}: {user.subscription_tier.toUpperCase()}</h3>
-        <div className="premium-features-grid">
-          <div className={`feature-card ${premium_features.custom_timers ? 'active' : 'locked'}`}>
-            <div className="feature-icon">
-              {premium_features.custom_timers ? '✅' : '🔒'}
-            </div>
-            <h4>{t('customTimers')}</h4>
-            <p>{premium_features.custom_timers ? t('enabled') : t('premiumOnly')}</p>
-          </div>
+      {/* Main Content Grid */}
+      <div className="main-content-grid">
+        {/* Focus Timer */}
+        <div className="focus-section">
+          <h2 className="section-title">⏱️ {t('focus')} Timer</h2>
           
-          <div className={`feature-card ${premium_features.productivity_themes ? 'active' : 'locked'}`}>
-            <div className="feature-icon">
-              {premium_features.productivity_themes ? '✅' : '🔒'}
-            </div>
-            <h4>{t('adaptiveThemes')}</h4>
-            <p>{premium_features.productivity_themes ? t('enabled') : t('premiumOnly')}</p>
+          <div className="session-type-selector">
+            {Object.entries(sessionTypes).map(([type, config]) => (
+              <button
+                key={type}
+                className={`session-type-btn ${sessionType === type ? 'active' : ''}`}
+                onClick={() => {
+                  setSessionType(type);
+                  setTimeLeft(config.duration);
+                  setIsActive(false);
+                  setCurrentSessionId(null);
+                }}
+              >
+                {config.label}
+              </button>
+            ))}
           </div>
-          
-          <div className={`feature-card ${premium_features.premium_sounds ? 'active' : 'locked'}`}>
-            <div className="feature-icon">
-              {premium_features.premium_sounds ? '✅' : '🔒'}
-            </div>
-            <h4>{t('premiumSounds')}</h4>
-            <p>{premium_features.premium_sounds ? t('enabled') : t('premiumOnly')}</p>
-          </div>
-          
-          <div className="feature-card premium-xp">
-            <div className="feature-icon">
-              {user.subscription_tier === 'premium' ? '⭐' : '💰'}
-            </div>
-            <h4>{t('xpBonus')}</h4>
-            <p>{user.subscription_tier === 'premium' ? '+20% XP' : t('standardXp')}</p>
+
+          <Timer 
+            isActive={isActive}
+            timeLeft={timeLeft}
+            totalTime={sessionTypes[sessionType].duration}
+            onComplete={handleSessionComplete}
+          />
+
+          <div className="timer-controls">
+            {!isActive ? (
+              <button className="timer-btn primary" onClick={startTimer}>
+                {timeLeft === sessionTypes[sessionType].duration ? t('start') : t('resume')}
+              </button>
+            ) : (
+              <button className="timer-btn secondary" onClick={pauseTimer}>
+                {t('pause')}
+              </button>
+            )}
+            <button className="timer-btn secondary" onClick={resetTimer}>
+              {t('reset')}
+            </button>
           </div>
         </div>
-        
-        {user.subscription_tier === 'free' && (
-          <button 
-            className="upgrade-banner-btn"
-            onClick={() => setShowSubscriptionModal(true)}
-          >
-            🚀 {t('upgradeToPremium')}
-          </button>
-        )}
-      </div>
 
-      {recent_achievements.length > 0 && (
-        <div className="achievements-section">
-          <h3 className="section-title">{t('recentAchievements')}</h3>
-          <div className="achievements-list">
-            {recent_achievements.map(achievement => (
-              <div key={achievement.id} className="achievement-card">
+        {/* Task Management */}
+        <div className="tasks-section">
+          <h2 className="section-title">✅ {t('tasks')}</h2>
+          
+          <form onSubmit={addTask} className="task-form-compact">
+            <div className="form-group">
+              <input
+                type="text"
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                placeholder={t('whatTodo')}
+                className="task-input-compact"
+                maxLength={100}
+              />
+            </div>
+            <button type="submit" className="add-task-btn-compact">
+              {t('addTaskXp', { xp: xpAmount })}
+              {user?.subscription_tier === 'premium' && <span className="premium-bonus">+20%</span>}
+            </button>
+          </form>
+
+          <div className="task-lists-compact">
+            {pendingTasks.length > 0 && (
+              <div className="task-list-compact">
+                <h4>{t('pendingTasks')} ({pendingTasks.length})</h4>
+                {pendingTasks.slice(0, 5).map(task => (
+                  <TaskItem key={task.id} task={task} onToggle={toggleTask} onDelete={deleteTask} />
+                ))}
+              </div>
+            )}
+
+            {completedTasks.length > 0 && (
+              <div className="task-list-compact">
+                <h4>{t('completedTasks')} ({completedTasks.length})</h4>
+                {completedTasks.slice(0, 3).map(task => (
+                  <TaskItem key={task.id} task={task} onToggle={toggleTask} onDelete={deleteTask} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Referral Earnings */}
+        <div className="referral-section">
+          <h2 className="section-title">💰 Geld Verdienen</h2>
+          
+          <div className="earnings-summary">
+            <div className="earnings-item">
+              <div className="earnings-value">${referralStats.total_commission_earned.toFixed(2)}</div>
+              <div className="earnings-label">Verdient</div>
+            </div>
+            <div className="earnings-item">
+              <div className="earnings-value">{referralStats.total_referrals}</div>
+              <div className="earnings-label">Empfehlungen</div>
+            </div>
+            <div className="earnings-item">
+              <div className="earnings-value">${referralStats.available_for_withdrawal.toFixed(2)}</div>
+              <div className="earnings-label">Verfügbar</div>
+            </div>
+          </div>
+
+          <div className="share-buttons-compact">
+            <button 
+              className="share-btn-compact twitter"
+              onClick={() => window.open(`https://twitter.com/intent/tweet?text=Check out FocusFlow! ${encodeURIComponent(referralStats.referral_link)}`, '_blank')}
+            >
+              🐦
+            </button>
+            <button 
+              className="share-btn-compact facebook"
+              onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralStats.referral_link)}`, '_blank')}
+            >
+              📘
+            </button>
+            <button 
+              className="share-btn-compact instagram"
+              onClick={() => {
+                navigator.clipboard.writeText(`Check out FocusFlow! ${referralStats.referral_link}`);
+                alert('Instagram text copied!');
+              }}
+            >
+              📸
+            </button>
+            <button 
+              className="share-btn-compact tiktok"
+              onClick={() => {
+                navigator.clipboard.writeText(`Boost your productivity with FocusFlow! ${referralStats.referral_link}`);
+                alert('TikTok text copied!');
+              }}
+            >
+              🎵
+            </button>
+          </div>
+
+          <div className="referral-how-it-works">
+            <p><strong>Wie es funktioniert:</strong></p>
+            <ol>
+              <li>Link teilen</li>
+              <li>Freund kauft Premium</li>
+              <li>Du bekommst sofort $5</li>
+            </ol>
+          </div>
+        </div>
+
+        {/* Achievements */}
+        {recent_achievements.length > 0 && (
+          <div className="achievements-section-compact">
+            <h2 className="section-title">🏆 {t('recentAchievements')}</h2>
+            {recent_achievements.slice(0, 3).map(achievement => (
+              <div key={achievement.id} className="achievement-card-compact">
                 <div className="achievement-icon">🏆</div>
                 <div className="achievement-content">
                   <h4>{achievement.title}</h4>
-                  <p>{achievement.description}</p>
                   <span className="achievement-xp">+{achievement.xp_reward} XP</span>
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Premium Upsell */}
+      {user.subscription_tier === 'free' && (
+        <div className="premium-upsell-bottom">
+          <div className="upsell-content">
+            <h3>🚀 Premium Features freischalten</h3>
+            <p>Custom Timer, Adaptive Themes, 20% XP Bonus & mehr!</p>
+            <button
+              className="upgrade-btn-bottom"
+              onClick={() => setShowSubscriptionModal(true)}
+            >
+              Upgrade für $9.99/Monat
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
+      {showWithdrawModal && (
+        <div className="modal-overlay">
+          <div className="modal-content withdrawal-modal">
+            <div className="modal-header">
+              <h3>💸 Geld abholen</h3>
+              <button className="modal-close" onClick={() => setShowWithdrawModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="withdrawal-summary">
+                <div className="withdrawal-amount">${referralStats.available_for_withdrawal.toFixed(2)}</div>
+                <p>Verfügbar zur Auszahlung auf dein Bankkonto</p>
+              </div>
+              <div className="withdrawal-info">
+                <p><strong>Bearbeitungszeit:</strong> 3-5 Werktage</p>
+                <p><strong>Gebühren:</strong> Kostenlos</p>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="modal-btn secondary" onClick={() => setShowWithdrawModal(false)}>
+                Abbrechen
+              </button>
+              <button className="modal-btn primary" onClick={requestWithdrawal}>
+                Jetzt Auszahlen
+              </button>
+            </div>
           </div>
         </div>
       )}
