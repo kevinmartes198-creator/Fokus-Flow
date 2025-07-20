@@ -147,6 +147,7 @@ class User(BaseModel):
     email: str
     subscription_tier: SubscriptionTier = SubscriptionTier.free
     subscription_expires_at: Optional[datetime] = None
+    premium_badge: Optional[str] = None  # Badge type for premium users
     total_xp: int = 0
     current_streak: int = 0
     best_streak: int = 0
