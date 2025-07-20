@@ -10,6 +10,8 @@ from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timedelta
 from enum import Enum
+import hashlib
+import secrets
 
 # Stripe integration
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
@@ -53,16 +55,212 @@ class PaymentStatus(str, Enum):
     failed = "failed"
     expired = "expired"
 
-# Subscription packages
+class ReferralStatus(str, Enum):
+    pending = "pending"
+    completed = "completed"
+    paid = "paid"
+
+class CommissionStatus(str, Enum):
+    pending = "pending"
+    approved = "approved"
+    paid = "paid"
+    cancelled = "cancelled"
+
+# Subscription packages with referral commissions
 SUBSCRIPTION_PACKAGES = {
     "monthly_premium": {
         "amount": 9.99,
         "currency": "usd",
         "name": "Premium Monthly",
         "description": "Unlock all premium features including custom timers, advanced themes, and premium sounds",
-        "duration_months": 1
+        "duration_months": 1,
+        "commission_amount": 5.00  # $5 commission per referral
     }
 }
+
+# Models
+class Task(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    title: str
+    description: Optional[str] = ""
+    status: TaskStatus = TaskStatus.pending
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: Optional[datetime] = None
+    xp_earned: int = 10
+
+class TaskCreate(BaseModel):
+    title: str
+    description: Optional[str] = ""
+
+class TaskUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[TaskStatus] = None
+
+class FocusSession(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    timer_type: TimerType
+    duration_minutes: int
+    completed: bool = False
+    started_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: Optional[datetime] = None
+    xp_earned: int = 25
+
+class FocusSessionCreate(BaseModel):
+    timer_type: TimerType
+    duration_minutes: int
+
+class User(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    email: str
+    subscription_tier: SubscriptionTier = SubscriptionTier.free
+    subscription_expires_at: Optional[datetime] = None
+    total_xp: int = 0
+    current_streak: int = 0
+    best_streak: int = 0
+    level: int = 1
+    tasks_completed: int = 0
+    focus_sessions_completed: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    last_activity_date: Optional[datetime] = None
+    referral_code: Optional[str] = None
+    referred_by: Optional[str] = None  # Referral code of who referred this user
+    total_referrals: int = 0
+    total_commission_earned: float = 0.0
+
+class UserCreate(BaseModel):
+    name: str
+    email: str
+    referral_code: Optional[str] = None  # Code of person who referred them
+
+class Achievement(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    achievement_type: str
+    title: str
+    description: str
+    xp_reward: int
+    unlocked_at: datetime = Field(default_factory=datetime.utcnow)
+
+class PaymentTransaction(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    session_id: str
+    package_id: str
+    amount: float
+    currency: str
+    payment_status: PaymentStatus = PaymentStatus.pending
+    stripe_payment_intent_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: Optional[datetime] = None
+    referral_code_used: Optional[str] = None  # Referral code used during purchase
+    metadata: Dict[str, Any] = {}
+
+class Referral(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    referrer_user_id: str  # User who made the referral
+    referred_user_id: str  # User who was referred
+    referral_code: str  # Referral code used
+    status: ReferralStatus = ReferralStatus.pending
+    commission_earned: float = 0.0
+    payment_transaction_id: Optional[str] = None  # Transaction that triggered commission
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: Optional[datetime] = None
+
+class Commission(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str  # User earning the commission
+    referral_id: str
+    amount: float
+    status: CommissionStatus = CommissionStatus.pending
+    payment_transaction_id: str  # Original transaction that generated commission
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    approved_at: Optional[datetime] = None
+    paid_at: Optional[datetime] = None
+
+class SubscriptionRequest(BaseModel):
+    package_id: str
+    origin_url: str
+    referral_code: Optional[str] = None
+
+class CustomTimerPreset(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    name: str
+    focus_minutes: int
+    short_break_minutes: int
+    long_break_minutes: int
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class CustomTimerCreate(BaseModel):
+    name: str
+    focus_minutes: int
+    short_break_minutes: int
+    long_break_minutes: int
+
+class DailyStats(BaseModel):
+    date: datetime
+    tasks_completed: int = 0
+    focus_sessions_completed: int = 0
+    total_focus_time: int = 0
+    xp_earned: int = 0
+
+class ReferralStats(BaseModel):
+    total_referrals: int
+    pending_referrals: int
+    completed_referrals: int
+    total_commission_earned: float
+    pending_commission: float
+    paid_commission: float
+
+# Helper functions
+def generate_referral_code(user_id: str, email: str) -> str:
+    """Generate a unique referral code for a user"""
+    # Create a hash from user ID and email, then take first 8 characters
+    hash_input = f"{user_id}{email}{secrets.token_hex(8)}"
+    return hashlib.md5(hash_input.encode()).hexdigest()[:8].upper()
+
+def get_level_from_xp(xp: int) -> int:
+    """Calculate level based on XP (100 XP per level)"""
+    return max(1, (xp // 100) + 1)
+
+def get_daily_color_theme():
+    """Get color theme based on day of week"""
+    themes = {
+        0: {"name": "Motivation Monday", "primary": "purple", "secondary": "indigo"},
+        1: {"name": "Tranquil Tuesday", "primary": "blue", "secondary": "cyan"},
+        2: {"name": "Wonderful Wednesday", "primary": "green", "secondary": "emerald"},
+        3: {"name": "Thoughtful Thursday", "primary": "yellow", "secondary": "amber"},
+        4: {"name": "Fresh Friday", "primary": "pink", "secondary": "rose"},
+        5: {"name": "Serene Saturday", "primary": "teal", "secondary": "cyan"},
+        6: {"name": "Soulful Sunday", "primary": "violet", "secondary": "purple"}
+    }
+    return themes[datetime.now().weekday()]
+
+def get_productivity_theme(user_data: dict):
+    """Get adaptive theme based on productivity level (premium feature)"""
+    if user_data.get("subscription_tier") != "premium":
+        return get_daily_color_theme()
+    
+    # Calculate productivity score based on recent activity
+    today = datetime.utcnow().date()
+    today_tasks = user_data.get("tasks_completed_today", 0)
+    today_sessions = user_data.get("focus_sessions_completed_today", 0)
+    
+    productivity_score = (today_tasks * 2) + (today_sessions * 3)  # Weight sessions more
+    
+    if productivity_score >= 20:
+        return {"name": "High Energy", "primary": "green", "secondary": "emerald"}
+    elif productivity_score >= 10:
+        return {"name": "Steady Progress", "primary": "blue", "secondary": "cyan"}
+    elif productivity_score >= 5:
+        return {"name": "Getting Started", "primary": "yellow", "secondary": "amber"}
+    else:
+        return {"name": "Fresh Start", "primary": "purple", "secondary": "indigo"}
 
 # Models
 class Task(BaseModel):
