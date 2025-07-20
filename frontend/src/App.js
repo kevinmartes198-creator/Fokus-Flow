@@ -110,18 +110,246 @@ const StatsCard = ({ title, value, subtitle, className = "" }) => {
   );
 };
 
+const CustomTimerModal = ({ isOpen, onClose, onSave, editingTimer }) => {
+  const [name, setName] = useState('');
+  const [focusMinutes, setFocusMinutes] = useState(25);
+  const [shortBreakMinutes, setShortBreakMinutes] = useState(5);
+  const [longBreakMinutes, setLongBreakMinutes] = useState(15);
+
+  useEffect(() => {
+    if (editingTimer) {
+      setName(editingTimer.name);
+      setFocusMinutes(editingTimer.focus_minutes);
+      setShortBreakMinutes(editingTimer.short_break_minutes);
+      setLongBreakMinutes(editingTimer.long_break_minutes);
+    } else {
+      setName('');
+      setFocusMinutes(25);
+      setShortBreakMinutes(5);
+      setLongBreakMinutes(15);
+    }
+  }, [editingTimer]);
+
+  const handleSave = () => {
+    if (!name.trim()) return;
+    
+    onSave({
+      name: name.trim(),
+      focus_minutes: focusMinutes,
+      short_break_minutes: shortBreakMinutes,
+      long_break_minutes: longBreakMinutes
+    });
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h3>{editingTimer ? 'Edit Timer' : 'Create Custom Timer'}</h3>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        
+        <div className="modal-body">
+          <div className="form-group">
+            <label>Timer Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g., Deep Work Session"
+              className="modal-input"
+            />
+          </div>
+          
+          <div className="timer-settings-grid">
+            <div className="form-group">
+              <label>Focus Time (minutes)</label>
+              <input
+                type="number"
+                min="1"
+                max="180"
+                value={focusMinutes}
+                onChange={(e) => setFocusMinutes(parseInt(e.target.value))}
+                className="modal-input"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Short Break (minutes)</label>
+              <input
+                type="number"
+                min="1"
+                max="60"
+                value={shortBreakMinutes}
+                onChange={(e) => setShortBreakMinutes(parseInt(e.target.value))}
+                className="modal-input"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Long Break (minutes)</label>
+              <input
+                type="number"
+                min="1"
+                max="120"
+                value={longBreakMinutes}
+                onChange={(e) => setLongBreakMinutes(parseInt(e.target.value))}
+                className="modal-input"
+              />
+            </div>
+          </div>
+        </div>
+        
+        <div className="modal-footer">
+          <button className="modal-btn secondary" onClick={onClose}>Cancel</button>
+          <button className="modal-btn primary" onClick={handleSave}>
+            {editingTimer ? 'Update' : 'Create'} Timer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SubscriptionModal = ({ isOpen, onClose }) => {
+  const [loading, setLoading] = useState(false);
+  const [packages, setPackages] = useState({});
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchPackages();
+    }
+  }, [isOpen]);
+
+  const fetchPackages = async () => {
+    try {
+      const response = await axios.get(`${API}/subscription/packages`);
+      setPackages(response.data);
+    } catch (error) {
+      console.error('Error fetching packages:', error);
+    }
+  };
+
+  const handleSubscribe = async (packageId) => {
+    setLoading(true);
+    try {
+      const originUrl = window.location.origin;
+      const response = await axios.post(`${API}/subscription/checkout`, {
+        package_id: packageId,
+        origin_url: originUrl
+      });
+
+      if (response.data.checkout_url) {
+        window.location.href = response.data.checkout_url;
+      }
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content subscription-modal">
+        <div className="modal-header">
+          <h3>Upgrade to Premium</h3>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        
+        <div className="modal-body">
+          <div className="subscription-features">
+            <h4>Premium Features Include:</h4>
+            <ul className="features-list">
+              <li>
+                <svg className="feature-icon" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                Custom timer lengths (90/15 min deep work sessions)
+              </li>
+              <li>
+                <svg className="feature-icon" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                Productivity-based adaptive themes
+              </li>
+              <li>
+                <svg className="feature-icon" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                Premium sound notifications
+              </li>
+              <li>
+                <svg className="feature-icon" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                20% XP bonus on all activities
+              </li>
+              <li>
+                <svg className="feature-icon" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                Advanced analytics and insights
+              </li>
+            </ul>
+          </div>
+          
+          <div className="subscription-packages">
+            {Object.entries(packages).map(([packageId, pkg]) => (
+              <div key={packageId} className="package-card premium-package">
+                <div className="package-header">
+                  <h4>{pkg.name}</h4>
+                  <div className="package-price">
+                    <span className="price">${pkg.amount}</span>
+                    <span className="period">/month</span>
+                  </div>
+                </div>
+                <p className="package-description">{pkg.description}</p>
+                <button
+                  className="package-btn premium"
+                  onClick={() => handleSubscribe(packageId)}
+                  disabled={loading}
+                >
+                  {loading ? 'Processing...' : 'Subscribe Now'}
+                </button>
+              </div>
+            ))}
+          </div>
+          
+          <div className="subscription-note">
+            <p>✨ Start your premium journey today and unlock your full productivity potential!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PomodoroSession = () => {
   const { user, updateUserStats } = useAppContext();
   const [isActive, setIsActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
   const [sessionType, setSessionType] = useState('focus');
   const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [customTimers, setCustomTimers] = useState([]);
+  const [selectedCustomTimer, setSelectedCustomTimer] = useState(null);
+  const [showCustomTimerModal, setShowCustomTimerModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   const sessionTypes = {
     focus: { duration: 25 * 60, label: 'Focus Time', next: 'short_break' },
     short_break: { duration: 5 * 60, label: 'Short Break', next: 'focus' },
     long_break: { duration: 15 * 60, label: 'Long Break', next: 'focus' }
   };
+
+  useEffect(() => {
+    if (user?.subscription_tier === 'premium') {
+      fetchCustomTimers();
+    }
+  }, [user]);
 
   useEffect(() => {
     let interval = null;
@@ -135,12 +363,78 @@ const PomodoroSession = () => {
     return () => clearInterval(interval);
   }, [isActive, timeLeft]);
 
+  const fetchCustomTimers = async () => {
+    try {
+      const response = await axios.get(`${API}/users/${user.id}/custom-timers`);
+      setCustomTimers(response.data);
+    } catch (error) {
+      console.error('Error fetching custom timers:', error);
+    }
+  };
+
+  const createCustomTimer = async (timerData) => {
+    try {
+      const response = await axios.post(`${API}/users/${user.id}/custom-timers`, timerData);
+      setCustomTimers([...customTimers, response.data]);
+      setShowCustomTimerModal(false);
+    } catch (error) {
+      console.error('Error creating custom timer:', error);
+      if (error.response?.status === 403) {
+        setShowSubscriptionModal(true);
+      }
+    }
+  };
+
+  const deleteCustomTimer = async (timerId) => {
+    try {
+      await axios.delete(`${API}/users/${user.id}/custom-timers/${timerId}`);
+      setCustomTimers(customTimers.filter(t => t.id !== timerId));
+    } catch (error) {
+      console.error('Error deleting custom timer:', error);
+    }
+  };
+
+  const applyCustomTimer = (timer) => {
+    setSelectedCustomTimer(timer);
+    const newSessionTypes = {
+      focus: { duration: timer.focus_minutes * 60, label: 'Focus Time', next: 'short_break' },
+      short_break: { duration: timer.short_break_minutes * 60, label: 'Short Break', next: 'focus' },
+      long_break: { duration: timer.long_break_minutes * 60, label: 'Long Break', next: 'focus' }
+    };
+    
+    // Update current session
+    setSessionType('focus');
+    setTimeLeft(newSessionTypes.focus.duration);
+    setIsActive(false);
+    setCurrentSessionId(null);
+  };
+
+  const resetToDefault = () => {
+    setSelectedCustomTimer(null);
+    setSessionType('focus');
+    setTimeLeft(25 * 60);
+    setIsActive(false);
+    setCurrentSessionId(null);
+  };
+
+  const getCurrentDuration = () => {
+    if (selectedCustomTimer) {
+      const durations = {
+        focus: selectedCustomTimer.focus_minutes * 60,
+        short_break: selectedCustomTimer.short_break_minutes * 60,
+        long_break: selectedCustomTimer.long_break_minutes * 60
+      };
+      return durations[sessionType];
+    }
+    return sessionTypes[sessionType].duration;
+  };
+
   const startTimer = async () => {
     if (!currentSessionId) {
       try {
         const response = await axios.post(`${API}/users/${user.id}/focus-sessions`, {
           timer_type: sessionType,
-          duration_minutes: sessionTypes[sessionType].duration / 60
+          duration_minutes: getCurrentDuration() / 60
         });
         setCurrentSessionId(response.data.id);
       } catch (error) {
@@ -157,7 +451,7 @@ const PomodoroSession = () => {
 
   const resetTimer = () => {
     setIsActive(false);
-    setTimeLeft(sessionTypes[sessionType].duration);
+    setTimeLeft(getCurrentDuration());
     setCurrentSessionId(null);
   };
 
@@ -176,12 +470,26 @@ const PomodoroSession = () => {
     // Auto-switch to next session type
     const nextType = sessionTypes[sessionType].next;
     setSessionType(nextType);
-    setTimeLeft(sessionTypes[nextType].duration);
+    const nextDuration = selectedCustomTimer ? 
+      (nextType === 'focus' ? selectedCustomTimer.focus_minutes : 
+       nextType === 'short_break' ? selectedCustomTimer.short_break_minutes : 
+       selectedCustomTimer.long_break_minutes) * 60 :
+      sessionTypes[nextType].duration;
+    setTimeLeft(nextDuration);
     setCurrentSessionId(null);
   };
 
   return (
     <div className="pomodoro-container">
+      {selectedCustomTimer && (
+        <div className="custom-timer-info">
+          <div className="timer-name">Using: {selectedCustomTimer.name}</div>
+          <button className="reset-timer-btn" onClick={resetToDefault}>
+            Use Default Timer
+          </button>
+        </div>
+      )}
+
       <div className="session-type-selector">
         {Object.entries(sessionTypes).map(([type, config]) => (
           <button
@@ -189,7 +497,7 @@ const PomodoroSession = () => {
             className={`session-type-btn ${sessionType === type ? 'active' : ''}`}
             onClick={() => {
               setSessionType(type);
-              setTimeLeft(config.duration);
+              setTimeLeft(getCurrentDuration());
               setIsActive(false);
               setCurrentSessionId(null);
             }}
@@ -202,14 +510,14 @@ const PomodoroSession = () => {
       <Timer 
         isActive={isActive}
         timeLeft={timeLeft}
-        totalTime={sessionTypes[sessionType].duration}
+        totalTime={getCurrentDuration()}
         onComplete={handleSessionComplete}
       />
 
       <div className="timer-controls">
         {!isActive ? (
           <button className="timer-btn primary" onClick={startTimer}>
-            {timeLeft === sessionTypes[sessionType].duration ? 'Start' : 'Resume'}
+            {timeLeft === getCurrentDuration() ? 'Start' : 'Resume'}
           </button>
         ) : (
           <button className="timer-btn secondary" onClick={pauseTimer}>
@@ -221,15 +529,214 @@ const PomodoroSession = () => {
         </button>
       </div>
 
-      {user.subscription_tier === 'free' && (
+      {/* Premium Custom Timers Section */}
+      {user?.subscription_tier === 'premium' && (
+        <div className="premium-timers-section">
+          <div className="section-header">
+            <h4>Custom Timers</h4>
+            <button
+              className="create-timer-btn"
+              onClick={() => setShowCustomTimerModal(true)}
+            >
+              + Create Timer
+            </button>
+          </div>
+          
+          {customTimers.length > 0 && (
+            <div className="custom-timers-list">
+              {customTimers.map(timer => (
+                <div key={timer.id} className="custom-timer-card">
+                  <div className="timer-info">
+                    <h5>{timer.name}</h5>
+                    <p>{timer.focus_minutes}/{timer.short_break_minutes}/{timer.long_break_minutes} min</p>
+                  </div>
+                  <div className="timer-actions">
+                    <button
+                      className="apply-timer-btn"
+                      onClick={() => applyCustomTimer(timer)}
+                    >
+                      Use
+                    </button>
+                    <button
+                      className="delete-timer-btn"
+                      onClick={() => deleteCustomTimer(timer.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Free User Upgrade Prompt */}
+      {user?.subscription_tier === 'free' && (
         <div className="premium-upsell">
           <div className="upsell-content">
             <h4>Want Custom Timer Lengths?</h4>
-            <p>Unlock 90/15 deep work sessions, custom sounds, and more with Premium!</p>
-            <button className="upgrade-btn">Upgrade to Premium</button>
+            <p>Unlock 90/15 deep work sessions, productivity themes, and 20% XP bonus with Premium!</p>
+            <button
+              className="upgrade-btn"
+              onClick={() => setShowSubscriptionModal(true)}
+            >
+              Upgrade to Premium - $9.99/month
+            </button>
           </div>
         </div>
       )}
+
+      {/* Modals */}
+      <CustomTimerModal
+        isOpen={showCustomTimerModal}
+        onClose={() => setShowCustomTimerModal(false)}
+        onSave={createCustomTimer}
+      />
+
+      <SubscriptionModal
+        isOpen={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
+      />
+    </div>
+  );
+};
+
+const SubscriptionSuccessHandler = () => {
+  const { updateUserStats } = useAppContext();
+  const [status, setStatus] = useState('checking');
+  const [paymentDetails, setPaymentDetails] = useState(null);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session_id');
+    
+    if (sessionId) {
+      checkPaymentStatus(sessionId);
+    }
+  }, []);
+
+  const checkPaymentStatus = async (sessionId, attempts = 0) => {
+    const maxAttempts = 10;
+    const pollInterval = 2000; // 2 seconds
+
+    if (attempts >= maxAttempts) {
+      setStatus('timeout');
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${API}/subscription/status/${sessionId}`);
+      const data = response.data;
+      
+      if (data.payment_status === 'completed') {
+        setStatus('success');
+        setPaymentDetails(data);
+        updateUserStats(); // Refresh user data to show premium status
+        return;
+      } else if (data.payment_status === 'failed' || data.payment_status === 'expired') {
+        setStatus('failed');
+        return;
+      }
+
+      // Continue polling
+      setTimeout(() => checkPaymentStatus(sessionId, attempts + 1), pollInterval);
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+      if (attempts < 3) {
+        setTimeout(() => checkPaymentStatus(sessionId, attempts + 1), pollInterval);
+      } else {
+        setStatus('error');
+      }
+    }
+  };
+
+  const getStatusDisplay = () => {
+    switch (status) {
+      case 'checking':
+        return (
+          <div className="payment-status checking">
+            <div className="status-spinner"></div>
+            <h3>Processing your payment...</h3>
+            <p>Please wait while we confirm your subscription.</p>
+          </div>
+        );
+      
+      case 'success':
+        return (
+          <div className="payment-status success">
+            <div className="status-icon success">✅</div>
+            <h3>Welcome to Premium!</h3>
+            <p>Your subscription has been activated successfully.</p>
+            <div className="payment-details">
+              {paymentDetails && (
+                <>
+                  <p>Amount: ${paymentDetails.amount} {paymentDetails.currency.toUpperCase()}</p>
+                  <p>Date: {new Date(paymentDetails.completed_at).toLocaleDateString()}</p>
+                </>
+              )}
+            </div>
+            <button
+              className="continue-btn"
+              onClick={() => window.location.href = '/'}
+            >
+              Continue to App
+            </button>
+          </div>
+        );
+      
+      case 'failed':
+        return (
+          <div className="payment-status failed">
+            <div className="status-icon failed">❌</div>
+            <h3>Payment Failed</h3>
+            <p>There was an issue processing your payment. Please try again.</p>
+            <button
+              className="retry-btn"
+              onClick={() => window.location.href = '/'}
+            >
+              Back to App
+            </button>
+          </div>
+        );
+      
+      case 'timeout':
+        return (
+          <div className="payment-status timeout">
+            <div className="status-icon timeout">⏰</div>
+            <h3>Payment Status Check Timed Out</h3>
+            <p>We're still processing your payment. Please check your email for confirmation.</p>
+            <button
+              className="continue-btn"
+              onClick={() => window.location.href = '/'}
+            >
+              Back to App
+            </button>
+          </div>
+        );
+      
+      default:
+        return (
+          <div className="payment-status error">
+            <div className="status-icon error">⚠️</div>
+            <h3>Something Went Wrong</h3>
+            <p>We encountered an error checking your payment status. Please contact support.</p>
+            <button
+              className="continue-btn"
+              onClick={() => window.location.href = '/'}
+            >
+              Back to App
+            </button>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div className="subscription-success-page">
+      <div className="status-container">
+        {getStatusDisplay()}
+      </div>
     </div>
   );
 };
@@ -315,7 +822,10 @@ const TaskManager = () => {
           <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
           </svg>
-          Add Task (+10 XP)
+          Add Task (+{user?.subscription_tier === 'premium' ? '12' : '10'} XP)
+          {user?.subscription_tier === 'premium' && (
+            <span className="premium-bonus">20% Bonus!</span>
+          )}
         </button>
       </form>
 
@@ -373,12 +883,13 @@ const TaskManager = () => {
 
 const Dashboard = () => {
   const { user, dashboardData, theme } = useAppContext();
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   if (!dashboardData) {
     return <div className="loading">Loading dashboard...</div>;
   }
 
-  const { today_stats, level_progress, recent_achievements } = dashboardData;
+  const { today_stats, level_progress, recent_achievements, premium_features } = dashboardData;
 
   return (
     <div className="dashboard">
@@ -386,7 +897,9 @@ const Dashboard = () => {
         <div className="user-info">
           <h1 className="welcome-text">Welcome back, {user.name}!</h1>
           <div className={`theme-badge theme-${theme.primary}`}>
-            Today's Theme: {theme.name}
+            {premium_features.productivity_themes ? 
+              `Productivity Theme: ${theme.name}` : 
+              `Today's Theme: ${theme.name}`}
           </div>
         </div>
 
@@ -431,6 +944,53 @@ const Dashboard = () => {
         />
       </div>
 
+      {/* Premium Features Status */}
+      <div className="premium-status-section">
+        <h3 className="section-title">Your Plan: {user.subscription_tier.toUpperCase()}</h3>
+        <div className="premium-features-grid">
+          <div className={`feature-card ${premium_features.custom_timers ? 'active' : 'locked'}`}>
+            <div className="feature-icon">
+              {premium_features.custom_timers ? '✅' : '🔒'}
+            </div>
+            <h4>Custom Timers</h4>
+            <p>{premium_features.custom_timers ? 'Enabled' : 'Premium only'}</p>
+          </div>
+          
+          <div className={`feature-card ${premium_features.productivity_themes ? 'active' : 'locked'}`}>
+            <div className="feature-icon">
+              {premium_features.productivity_themes ? '✅' : '🔒'}
+            </div>
+            <h4>Adaptive Themes</h4>
+            <p>{premium_features.productivity_themes ? 'Enabled' : 'Premium only'}</p>
+          </div>
+          
+          <div className={`feature-card ${premium_features.premium_sounds ? 'active' : 'locked'}`}>
+            <div className="feature-icon">
+              {premium_features.premium_sounds ? '✅' : '🔒'}
+            </div>
+            <h4>Premium Sounds</h4>
+            <p>{premium_features.premium_sounds ? 'Enabled' : 'Premium only'}</p>
+          </div>
+          
+          <div className="feature-card premium-xp">
+            <div className="feature-icon">
+              {user.subscription_tier === 'premium' ? '⭐' : '💰'}
+            </div>
+            <h4>XP Bonus</h4>
+            <p>{user.subscription_tier === 'premium' ? '+20% XP' : 'Standard XP'}</p>
+          </div>
+        </div>
+        
+        {user.subscription_tier === 'free' && (
+          <button 
+            className="upgrade-banner-btn"
+            onClick={() => setShowSubscriptionModal(true)}
+          >
+            🚀 Upgrade to Premium - Unlock all features for $9.99/month
+          </button>
+        )}
+      </div>
+
       {recent_achievements.length > 0 && (
         <div className="achievements-section">
           <h3 className="section-title">Recent Achievements</h3>
@@ -448,6 +1008,11 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+
+      <SubscriptionModal
+        isOpen={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
+      />
     </div>
   );
 };
@@ -459,6 +1024,10 @@ const App = () => {
   const [theme, setTheme] = useState({ name: 'Default', primary: 'purple', secondary: 'indigo' });
   const [currentView, setCurrentView] = useState('dashboard');
   const [loading, setLoading] = useState(true);
+
+  // Check if we're on subscription success page
+  const isSubscriptionSuccess = window.location.pathname === '/subscription/success' || 
+                              window.location.search.includes('session_id');
 
   const updateUserStats = async () => {
     if (!user) return;
@@ -518,6 +1087,18 @@ const App = () => {
         <div className="loading-spinner"></div>
         <p>Loading FocusFlow...</p>
       </div>
+    );
+  }
+
+  // Handle subscription success page
+  if (isSubscriptionSuccess) {
+    const contextValue = { user, updateUserStats };
+    return (
+      <AppContext.Provider value={contextValue}>
+        <div className={`app theme-${theme.primary}`}>
+          <SubscriptionSuccessHandler />
+        </div>
+      </AppContext.Provider>
     );
   }
 
