@@ -5,6 +5,11 @@ import axios from 'axios';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+// Helper function to check if user has premium access
+const isPremiumUser = (subscriptionTier) => {
+  return ['premium', 'premium_monthly', 'premium_yearly', 'premium_lifetime'].includes(subscriptionTier);
+};
+
 // Language translations
 const translations = {
   en: {
