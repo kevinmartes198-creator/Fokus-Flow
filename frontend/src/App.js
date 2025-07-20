@@ -119,7 +119,15 @@ const translations = {
     delete: "Delete",
     edit: "Edit",
     save: "Save",
-    close: "Close"
+    close: "Close",
+    
+    // Referral Banner
+    earned: "earned",
+    available: "available",
+    earnPer: "Earn",
+    perReferral: "per Premium referral! Share:",
+    copyLink: "Copy Link",
+    viewDetails: "View Details"
   },
   es: {
     // Navigation
