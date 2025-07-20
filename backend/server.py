@@ -1169,6 +1169,126 @@ async def stripe_webhook(request: Request):
         logging.error(f"Webhook error: {str(e)}")
         raise HTTPException(status_code=400, detail="Webhook processing failed")
 
+# Referral System routes
+@api_router.get("/users/{user_id}/referral-stats")
+async def get_referral_stats(user_id: str):
+    """Get referral statistics for a user"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get referral counts
+    total_referrals = await db.referrals.count_documents({"referrer_user_id": user_id})
+    completed_referrals = await db.referrals.count_documents({
+        "referrer_user_id": user_id, 
+        "status": ReferralStatus.completed
+    })
+    pending_referrals = total_referrals - completed_referrals
+    
+    # Get commission totals
+    commissions = await db.commissions.find({"user_id": user_id}).to_list(None)
+    
+    total_earned = sum(c["amount"] for c in commissions if c["status"] == CommissionStatus.paid)
+    pending_commission = sum(c["amount"] for c in commissions if c["status"] == CommissionStatus.pending)
+    
+    # Get available withdrawals
+    withdrawals = await db.withdrawals.find({
+        "user_id": user_id, 
+        "status": "available_for_withdrawal"
+    }).to_list(None)
+    
+    available_for_withdrawal = sum(w["amount"] for w in withdrawals)
+    
+    return {
+        "referral_code": user["referral_code"],
+        "total_referrals": total_referrals,
+        "pending_referrals": pending_referrals,
+        "completed_referrals": completed_referrals,
+        "total_commission_earned": total_earned,
+        "pending_commission": pending_commission,
+        "available_for_withdrawal": available_for_withdrawal,
+        "referral_link": f"https://focusflow.app?ref={user['referral_code']}",
+        "earnings_breakdown": {
+            "per_referral": 5.00,
+            "total_possible": total_referrals * 5.00,
+            "total_earned": total_earned
+        }
+    }
+
+@api_router.get("/users/{user_id}/referrals")
+async def get_user_referrals(user_id: str, limit: int = 10):
+    """Get referral history for a user"""
+    referrals = await db.referrals.find({
+        "referrer_user_id": user_id
+    }).sort("created_at", -1).limit(limit).to_list(None)
+    
+    return [Referral(**referral) for referral in referrals]
+
+@api_router.get("/users/{user_id}/withdrawals")
+async def get_user_withdrawals(user_id: str):
+    """Get available withdrawals for a user"""
+    withdrawals = await db.withdrawals.find({
+        "user_id": user_id
+    }).sort("created_at", -1).to_list(None)
+    
+    return withdrawals
+
+@api_router.post("/users/{user_id}/withdraw")
+async def request_withdrawal(user_id: str, withdrawal_request: dict):
+    """Request withdrawal of earned commissions"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get available balance
+    available_withdrawals = await db.withdrawals.find({
+        "user_id": user_id,
+        "status": "available_for_withdrawal"
+    }).to_list(None)
+    
+    total_available = sum(w["amount"] for w in available_withdrawals)
+    
+    if total_available <= 0:
+        raise HTTPException(status_code=400, detail="No balance available for withdrawal")
+    
+    # In production, this would integrate with:
+    # - Stripe Express for bank transfers
+    # - PayPal API for PayPal transfers
+    # - Other payment providers
+    
+    # For now, mark withdrawals as requested
+    await db.withdrawals.update_many(
+        {"user_id": user_id, "status": "available_for_withdrawal"},
+        {"$set": {
+            "status": "withdrawal_requested",
+            "requested_at": datetime.utcnow(),
+            "withdrawal_method": withdrawal_request.get("method", "bank_transfer")
+        }}
+    )
+    
+    return {
+        "message": f"Withdrawal request submitted for ${total_available:.2f}",
+        "amount": total_available,
+        "status": "requested",
+        "processing_time": "3-5 business days"
+    }
+
+@api_router.get("/validate-referral/{referral_code}")
+async def validate_referral_code(referral_code: str):
+    """Validate if referral code exists and get referrer info"""
+    referrer = await db.users.find_one({"referral_code": referral_code})
+    
+    if not referrer:
+        return {"valid": False, "message": "Invalid referral code"}
+    
+    return {
+        "valid": True,
+        "referrer_name": referrer["name"],
+        "commission_amount": 5.00,
+        "message": f"Valid referral code! {referrer['name']} will earn $5.00 when you subscribe to Premium.",
+        "discount_info": "No discount applied, but your referrer gets rewarded!"
+    }
+
 # Include the router in the main app
 app.include_router(api_router)
 
