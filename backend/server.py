@@ -1030,7 +1030,7 @@ async def create_subscription_checkout(request: SubscriptionRequest):
 
 @api_router.get("/subscription/status/{session_id}")
 async def get_subscription_status(session_id: str):
-    """Check subscription payment status"""
+    """Check subscription payment status and process referral commissions"""
     # Find payment transaction
     transaction = await db.payment_transactions.find_one({"session_id": session_id})
     if not transaction:
@@ -1041,7 +1041,8 @@ async def get_subscription_status(session_id: str):
         return {
             "payment_status": transaction["payment_status"],
             "session_id": session_id,
-            "completed_at": transaction.get("completed_at")
+            "completed_at": transaction.get("completed_at"),
+            "referral_commission_processed": bool(transaction.get("referral_code_used"))
         }
     
     # Check with Stripe
@@ -1076,6 +1077,14 @@ async def get_subscription_status(session_id: str):
                 }
             )
             
+            # Process instant referral commission if applicable
+            if transaction.get("referral_code_used"):
+                await process_referral_commission(
+                    payment_transaction_id=transaction["id"],
+                    referral_code_used=transaction["referral_code_used"],
+                    amount_paid=transaction["amount"]
+                )
+            
             # Award premium achievement
             await check_and_award_achievements(user_id)
         
@@ -1089,7 +1098,12 @@ async def get_subscription_status(session_id: str):
             "session_id": session_id,
             "amount": checkout_status.amount_total / 100,  # Convert from cents
             "currency": checkout_status.currency,
-            "completed_at": update_data.get("completed_at")
+            "completed_at": update_data.get("completed_at"),
+            "referral_commission": {
+                "processed": bool(transaction.get("referral_code_used")) and update_data["payment_status"] == "completed",
+                "amount": 5.00 if transaction.get("referral_code_used") else 0,
+                "referral_code": transaction.get("referral_code_used")
+            }
         }
         
     except Exception as e:
@@ -1098,7 +1112,7 @@ async def get_subscription_status(session_id: str):
 
 @api_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request):
-    """Handle Stripe webhooks"""
+    """Handle Stripe webhooks and process instant referral commissions"""
     try:
         body = await request.body()
         signature = request.headers.get("stripe-signature")
@@ -1137,6 +1151,15 @@ async def stripe_webhook(request: Request):
                         }
                     }
                 )
+                
+                # Process instant referral commission if applicable
+                if transaction.get("referral_code_used"):
+                    await process_referral_commission(
+                        payment_transaction_id=transaction["id"],
+                        referral_code_used=transaction["referral_code_used"],
+                        amount_paid=transaction["amount"]
+                    )
+                    logging.info(f"Instant $5 commission processed for referral code: {transaction['referral_code_used']}")
                 
                 await check_and_award_achievements(user_id)
         
