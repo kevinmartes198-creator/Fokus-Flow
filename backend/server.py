@@ -311,6 +311,38 @@ class ReferralStats(BaseModel):
     pending_commission: float
     paid_commission: float
 
+class Withdrawal(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    amount: float
+    method: str  # "bank_transfer", "paypal", etc.
+    status: str = "pending"  # pending, completed, failed
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    processed_at: Optional[datetime] = None
+
+class InAppPurchase(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    product_id: str
+    amount: float
+    currency: str
+    status: str = "pending"  # pending, completed, failed
+    stripe_payment_intent_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: Optional[datetime] = None
+    applied: bool = False  # Whether the reward has been applied
+
+class UserInventory(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    themes: List[str] = []  # Unlocked themes
+    sounds: List[str] = []  # Unlocked sound packs
+    powerups: Dict[str, int] = {}  # Powerup type -> count
+    streak_protection_until: Optional[datetime] = None
+    instant_achievements_used: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
 # Helper functions
 def generate_referral_code(user_id: str, email: str) -> str:
     """Generate a unique referral code for a user"""
