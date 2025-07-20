@@ -2018,6 +2018,13 @@ class FocusFlowTester:
         
         self.test_eur_pricing_system()
         
+        # NEW IN-APP SHOP SYSTEM TEST - Phase 2 Monetization
+        print("\n" + "🛍️" * 20)
+        print("NEW IN-APP SHOP SYSTEM TEST - PHASE 2 MONETIZATION")
+        print("🛍️" * 20)
+        
+        self.test_comprehensive_in_app_shop_system()
+        
         # CRITICAL END-TO-END REFERRAL COMMISSION SYSTEM TEST
         print("\n" + "🎯" * 20)
         print("CRITICAL END-TO-END REFERRAL COMMISSION SYSTEM TEST")
