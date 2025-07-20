@@ -485,7 +485,15 @@ const translations = {
     delete: "Löschen",
     edit: "Bearbeiten",
     save: "Speichern",
-    close: "Schließen"
+    close: "Schließen",
+    
+    // Referral Banner
+    earned: "verdient",
+    available: "verfügbar",
+    earnPer: "Verdiene",
+    perReferral: "pro Premium-Empfehlung! Teilen:",
+    copyLink: "Link Kopieren",
+    viewDetails: "Details Anzeigen"
   }
 };
 
