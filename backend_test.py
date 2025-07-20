@@ -894,6 +894,14 @@ class FocusFlowTester:
         self.test_stripe_payment_integration()
         self.test_payment_transaction_management()
         self.test_premium_custom_timers_api()
+        
+        # CRITICAL PRODUCTION READINESS TEST
+        print("\n" + "🚨" * 20)
+        print("CRITICAL PRODUCTION READINESS TEST")
+        print("🚨" * 20)
+        
+        self.test_critical_premium_upgrade_flow()
+        
         self.test_subscription_status_management()
         self.test_premium_xp_bonuses()
         self.test_premium_achievements()
