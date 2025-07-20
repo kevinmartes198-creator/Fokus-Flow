@@ -172,6 +172,80 @@ IN_APP_PRODUCTS = {
     }
 }
 
+# Daily Challenges - Smart engagement with micro-monetization opportunities  
+DAILY_CHALLENGES = {
+    "focus_master": {
+        "name": "Focus Master",
+        "description": "Complete 3 Pomodoro sessions today",
+        "icon": "🎯",
+        "goal": 3,
+        "type": "focus_sessions",
+        "reward": {"xp": 50, "streak_bonus": True},
+        "difficulty": "easy",
+        "unlock_offer": {
+            "product_id": "focus_powerup_pack",
+            "discount": 20,  # 20% off
+            "message": "Great focus today! Get 20% off Focus Power-ups to boost tomorrow!"
+        }
+    },
+    "task_crusher": {
+        "name": "Task Crusher", 
+        "description": "Complete 5 tasks in one day",
+        "icon": "✅",
+        "goal": 5,
+        "type": "tasks_completed",
+        "reward": {"xp": 75, "bonus_achievements": 1},
+        "difficulty": "medium",
+        "unlock_offer": {
+            "product_id": "xp_booster_500", 
+            "discount": 15,
+            "message": "Amazing productivity! Boost your XP with 15% off our XP Booster!"
+        }
+    },
+    "streak_warrior": {
+        "name": "Streak Warrior",
+        "description": "Maintain your focus streak for 7 consecutive days",
+        "icon": "🔥",
+        "goal": 7,
+        "type": "consecutive_days",
+        "reward": {"xp": 200, "special_badge": "streak_warrior"},
+        "difficulty": "hard",
+        "unlock_offer": {
+            "product_id": "streak_saver",
+            "discount": 50,
+            "message": "Incredible streak! Protect future streaks with 50% off Streak Saver!"
+        }
+    },
+    "theme_explorer": {
+        "name": "Theme Explorer",
+        "description": "Use 3 different themes in a week", 
+        "icon": "🎨",
+        "goal": 3,
+        "type": "themes_used",
+        "reward": {"xp": 100},
+        "difficulty": "medium",
+        "unlock_offer": {
+            "product_id": "premium_theme_pack",
+            "discount": 25,
+            "message": "Love themes? Unlock premium themes with 25% off!"
+        }
+    },
+    "early_bird": {
+        "name": "Early Bird",
+        "description": "Complete your first focus session before 9 AM",
+        "icon": "🌅", 
+        "goal": 1,
+        "type": "early_session",
+        "reward": {"xp": 30, "morning_badge": True},
+        "difficulty": "easy",
+        "unlock_offer": {
+            "product_id": "custom_sound_pack", 
+            "discount": 10,
+            "message": "Early starter! Enhance morning sessions with 10% off Sound Packs!"
+        }
+    }
+}
+
 # Models
 class Task(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
