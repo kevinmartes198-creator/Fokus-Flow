@@ -47,7 +47,10 @@ class TimerType(str, Enum):
 
 class SubscriptionTier(str, Enum):
     free = "free"
-    premium = "premium"
+    premium = "premium"  # Legacy premium (for existing users)
+    premium_monthly = "premium_monthly"
+    premium_yearly = "premium_yearly"  
+    premium_lifetime = "premium_lifetime"
 
 class PaymentStatus(str, Enum):
     pending = "pending"
