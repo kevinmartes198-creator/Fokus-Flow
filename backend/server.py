@@ -2363,6 +2363,193 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Advanced Analytics & Progress Tracking System - Phase 4
+ANALYTICS_SYSTEM = {
+    "metrics": {
+        "productivity_score": {
+            "name": "Productivity Score",
+            "description": "Overall productivity rating based on tasks, focus time, and consistency",
+            "calculation": "weighted_average",
+            "components": {
+                "task_completion": {"weight": 0.3, "max_points": 100},
+                "focus_consistency": {"weight": 0.3, "max_points": 100}, 
+                "streak_maintenance": {"weight": 0.2, "max_points": 100},
+                "goal_achievement": {"weight": 0.2, "max_points": 100}
+            },
+            "ranges": {
+                "beginner": {"min": 0, "max": 30, "color": "#ef4444", "icon": "🌱"},
+                "developing": {"min": 31, "max": 60, "color": "#f97316", "icon": "🌿"},
+                "proficient": {"min": 61, "max": 80, "color": "#eab308", "icon": "🌳"},
+                "expert": {"min": 81, "max": 95, "color": "#22c55e", "icon": "🏆"},
+                "master": {"min": 96, "max": 100, "color": "#8b5cf6", "icon": "👑"}
+            }
+        },
+        "focus_patterns": {
+            "name": "Focus Patterns Analysis",
+            "description": "Deep dive into when and how you focus best",
+            "analysis_types": {
+                "time_of_day": "Peak focus hours identification",
+                "session_length": "Optimal session duration analysis", 
+                "break_patterns": "Most effective break timing",
+                "weekly_trends": "Day-of-week productivity patterns",
+                "monthly_cycles": "Long-term productivity cycles"
+            }
+        },
+        "goal_tracking": {
+            "name": "Goal Achievement Tracking",
+            "description": "Advanced goal setting and achievement monitoring",
+            "goal_types": {
+                "daily_targets": {"tasks": "int", "focus_time": "minutes", "sessions": "int"},
+                "weekly_goals": {"streak_days": "int", "total_tasks": "int", "focus_hours": "float"},
+                "monthly_objectives": {"level_target": "int", "badge_goals": "int", "habit_building": "days"},
+                "custom_challenges": {"user_defined": "flexible", "deadline": "date", "reward": "custom"}
+            }
+        }
+    },
+    "visualizations": {
+        "heatmaps": {
+            "activity_heatmap": "24/7 activity visualization",
+            "productivity_calendar": "Monthly productivity overview",
+            "focus_intensity": "Session quality heatmap"
+        },
+        "trend_charts": {
+            "productivity_trend": "Long-term productivity changes",
+            "focus_time_trend": "Focus duration over time",
+            "streak_history": "Consistency tracking chart",
+            "xp_growth": "Experience point progression"
+        },
+        "comparative_analytics": {
+            "weekly_comparison": "Week-over-week analysis",
+            "monthly_summary": "Month-over-month insights", 
+            "goal_vs_actual": "Target vs achievement comparison",
+            "peer_benchmarks": "Anonymous user comparisons"
+        }
+    }
+}
+
+# Social Sharing System - Phase 4
+SOCIAL_SHARING = {
+    "platforms": {
+        "twitter": {
+            "name": "Twitter",
+            "icon": "🐦",
+            "character_limit": 280,
+            "image_support": True,
+            "hashtags": ["#FocusFlow", "#Productivity", "#DeepWork", "#Achievement"],
+            "base_url": "https://twitter.com/intent/tweet"
+        },
+        "linkedin": {
+            "name": "LinkedIn", 
+            "icon": "💼",
+            "character_limit": 1300,
+            "image_support": True,
+            "hashtags": ["#Productivity", "#ProfessionalDevelopment", "#Focus", "#Success"],
+            "base_url": "https://www.linkedin.com/sharing/share-offsite"
+        },
+        "facebook": {
+            "name": "Facebook",
+            "icon": "📘", 
+            "character_limit": 63206,
+            "image_support": True,
+            "hashtags": ["#ProductivityTips", "#FocusFlow", "#Achievement"],
+            "base_url": "https://www.facebook.com/sharer/sharer.php"
+        },
+        "instagram": {
+            "name": "Instagram Stories",
+            "icon": "📸",
+            "image_required": True,
+            "story_format": True,
+            "hashtags": ["#productivity", "#focus", "#achievement", "#goals"],
+            "base_url": "https://www.instagram.com/stories"
+        }
+    },
+    "share_templates": {
+        "badge_unlock": {
+            "title": "🎉 New Badge Unlocked!",
+            "templates": {
+                "twitter": "Just unlocked the '{badge_name}' badge on @FocusFlow! 🏆 {badge_description} My productivity journey continues! {hashtags}",
+                "linkedin": "Excited to share that I've unlocked the '{badge_name}' badge in my productivity journey with FocusFlow! 🏆\n\n{badge_description}\n\nConsistent effort and focus really do pay off. What productivity tools are helping you stay focused? {hashtags}",
+                "facebook": "🎉 Achievement Unlocked! Just earned the '{badge_name}' badge on FocusFlow! {badge_description} Love seeing the progress in my productivity journey. Who else is working on building better focus habits? {hashtags}"
+            }
+        },
+        "streak_milestone": {
+            "title": "🔥 Streak Milestone!",
+            "templates": {
+                "twitter": "🔥 {streak_days} day focus streak on @FocusFlow! Consistency is key to productivity. Who's joining me in building better habits? {hashtags}",
+                "linkedin": "Celebrating a {streak_days}-day consistency streak with FocusFlow! 🔥\n\nBuilding productive habits one day at a time. The compound effect of small daily actions continues to amaze me.\n\n#Consistency #ProductivityHabits #FocusFlow",
+                "facebook": "🔥 Big milestone alert! Just hit a {streak_days} day productivity streak using FocusFlow! The power of showing up every day is incredible. Building better habits one focus session at a time! {hashtags}"
+            }
+        },
+        "level_achievement": {
+            "title": "📈 Level Up!",
+            "templates": {
+                "twitter": "📈 Just reached Level {level} on @FocusFlow! {xp} XP and counting. The journey to better focus continues! {hashtags}",
+                "linkedin": "Level {level} achieved in my productivity journey! 🚀\n\nReached {xp} experience points through consistent focus sessions and task completion. Each level represents real growth in focus and productivity skills.\n\n{hashtags}",
+                "facebook": "🚀 Level Up! Just reached Level {level} on FocusFlow with {xp} XP! Each level represents hours of focused work and completed tasks. Loving this gamified approach to productivity! {hashtags}"
+            }
+        },
+        "challenge_completion": {
+            "title": "✅ Challenge Complete!",
+            "templates": {
+                "twitter": "✅ Completed the '{challenge_name}' challenge on @FocusFlow! {challenge_description} Feeling accomplished! {hashtags}",
+                "linkedin": "Challenge completed! 🎯\n\nJust finished the '{challenge_name}' challenge on FocusFlow: {challenge_description}\n\nThese daily challenges are a great way to build consistent productivity habits. What challenges are you taking on? {hashtags}",
+                "facebook": "🎯 Challenge conquered! Just completed the '{challenge_name}' challenge on FocusFlow! {challenge_description} These little daily wins really add up to big progress! {hashtags}"
+            }
+        }
+    }
+}
+
+# Cloud Sync & Multi-Device System - Phase 4
+CLOUD_SYNC = {
+    "sync_strategies": {
+        "real_time": {
+            "name": "Real-time Sync",
+            "description": "Immediate synchronization across all devices",
+            "update_frequency": "immediate",
+            "conflict_resolution": "last_write_wins",
+            "data_types": ["active_session", "task_updates", "timer_state"]
+        },
+        "periodic": {
+            "name": "Periodic Sync", 
+            "description": "Regular background synchronization",
+            "update_frequency": "5_minutes",
+            "conflict_resolution": "merge_strategy",
+            "data_types": ["completed_tasks", "session_history", "achievements", "badges"]
+        },
+        "on_demand": {
+            "name": "Manual Sync",
+            "description": "User-initiated synchronization",
+            "update_frequency": "user_triggered",
+            "conflict_resolution": "user_choice",
+            "data_types": ["full_backup", "settings", "preferences"]
+        }
+    },
+    "data_categories": {
+        "critical": {
+            "priority": 1,
+            "sync_strategy": "real_time",
+            "data": ["user_profile", "subscription_status", "active_sessions", "current_tasks"]
+        },
+        "important": {
+            "priority": 2, 
+            "sync_strategy": "periodic",
+            "data": ["task_history", "focus_sessions", "achievements", "badges", "streak_data"]
+        },
+        "supplementary": {
+            "priority": 3,
+            "sync_strategy": "on_demand", 
+            "data": ["themes", "preferences", "analytics_cache", "social_shares"]
+        }
+    },
+    "device_management": {
+        "max_devices": 5,
+        "device_types": ["desktop", "tablet", "mobile", "web"],
+        "device_identification": "uuid_based",
+        "last_sync_tracking": True,
+        "conflict_indicators": True
+    }
+}
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
