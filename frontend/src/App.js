@@ -363,7 +363,15 @@ const translations = {
     delete: "Supprimer",
     edit: "Modifier",
     save: "Sauvegarder",
-    close: "Fermer"
+    close: "Fermer",
+    
+    // Referral Banner
+    earned: "gagné",
+    available: "disponible",
+    earnPer: "Gagnez",
+    perReferral: "par parrainage Premium! Partagez:",
+    copyLink: "Copier Lien",
+    viewDetails: "Voir Détails"
   },
   de: {
     // Navigation
