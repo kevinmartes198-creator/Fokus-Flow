@@ -351,7 +351,7 @@ class FocusFlowTester:
         
         if success and status_code == 200:
             # Check main structure
-            required_sections = ["user", "today_stats", "level_progress", "recent_achievements", "theme"]
+            required_sections = ["user", "today_stats", "level_progress", "recent_achievements", "theme", "premium_features"]
             
             if all(section in data for section in required_sections):
                 self.log_test("Dashboard Structure", True, "All required sections present")
@@ -378,10 +378,316 @@ class FocusFlowTester:
                     self.log_test("Dashboard Theme", True, f"Theme: {theme['name']}")
                 else:
                     self.log_test("Dashboard Theme", False, f"Invalid theme data: {theme}")
+                
+                # Test premium features section
+                premium_features = data["premium_features"]
+                feature_fields = ["custom_timers", "productivity_themes", "premium_sounds", "advanced_analytics"]
+                if all(field in premium_features for field in feature_fields):
+                    self.log_test("Premium Features", True, f"Custom timers: {premium_features['custom_timers']}")
+                else:
+                    self.log_test("Premium Features", False, f"Missing fields in premium_features: {premium_features}")
             else:
                 self.log_test("Dashboard Structure", False, f"Missing sections: {data.keys()}")
         else:
             self.log_test("Dashboard Statistics", False, f"Status: {status_code}, Error: {data}")
+
+    def test_stripe_payment_integration(self):
+        """Test Stripe Payment Integration - Subscription packages and checkout"""
+        print("\n💳 Testing Stripe Payment Integration...")
+        
+        # Test subscription packages retrieval
+        success, data, status_code = self.make_request("GET", "/subscription/packages")
+        
+        if success and status_code == 200:
+            if "monthly_premium" in data:
+                package = data["monthly_premium"]
+                required_fields = ["amount", "currency", "name", "description", "duration_months"]
+                
+                if all(field in package for field in required_fields):
+                    if package["amount"] == 9.99 and package["currency"] == "usd":
+                        self.log_test("Subscription Packages", True, f"Premium package: ${package['amount']}/month")
+                    else:
+                        self.log_test("Subscription Packages", False, f"Incorrect pricing: ${package['amount']} {package['currency']}")
+                else:
+                    self.log_test("Subscription Packages", False, f"Missing package fields: {package}")
+            else:
+                self.log_test("Subscription Packages", False, f"Missing monthly_premium package: {data}")
+        else:
+            self.log_test("Subscription Packages", False, f"Status: {status_code}, Error: {data}")
+        
+        # Test checkout session creation
+        checkout_data = {
+            "package_id": "monthly_premium",
+            "origin_url": "https://focusflow.app"
+        }
+        
+        success, data, status_code = self.make_request("POST", "/subscription/checkout", checkout_data)
+        
+        if success and status_code == 200:
+            required_fields = ["checkout_url", "session_id"]
+            if all(field in data for field in required_fields):
+                if data["checkout_url"].startswith("https://checkout.stripe.com"):
+                    self.log_test("Checkout Session Creation", True, f"Session ID: {data['session_id'][:20]}...")
+                    
+                    # Store session ID for status testing
+                    self.checkout_session_id = data["session_id"]
+                else:
+                    self.log_test("Checkout Session Creation", False, f"Invalid checkout URL: {data['checkout_url']}")
+            else:
+                self.log_test("Checkout Session Creation", False, f"Missing fields: {data}")
+        else:
+            self.log_test("Checkout Session Creation", False, f"Status: {status_code}, Error: {data}")
+
+    def test_payment_transaction_management(self):
+        """Test Payment Transaction Management - Status tracking and polling"""
+        print("\n💰 Testing Payment Transaction Management...")
+        
+        if not hasattr(self, 'checkout_session_id'):
+            self.log_test("Payment Transaction Management", False, "No checkout session available")
+            return
+        
+        # Test payment status checking
+        success, data, status_code = self.make_request("GET", f"/subscription/status/{self.checkout_session_id}")
+        
+        if success and status_code == 200:
+            required_fields = ["payment_status", "session_id"]
+            if all(field in data for field in required_fields):
+                valid_statuses = ["pending", "completed", "failed", "expired"]
+                if data["payment_status"] in valid_statuses:
+                    self.log_test("Payment Status Polling", True, f"Status: {data['payment_status']}")
+                    
+                    # Verify session ID matches
+                    if data["session_id"] == self.checkout_session_id:
+                        self.log_test("Session ID Tracking", True, "Session ID matches")
+                    else:
+                        self.log_test("Session ID Tracking", False, f"Session ID mismatch")
+                else:
+                    self.log_test("Payment Status Polling", False, f"Invalid status: {data['payment_status']}")
+            else:
+                self.log_test("Payment Status Polling", False, f"Missing fields: {data}")
+        else:
+            self.log_test("Payment Status Polling", False, f"Status: {status_code}, Error: {data}")
+
+    def test_premium_custom_timers_api(self):
+        """Test Premium Custom Timers API - CRUD operations with access control"""
+        print("\n⏱️ Testing Premium Custom Timers API...")
+        
+        if not self.test_user_id:
+            self.log_test("Premium Custom Timers", False, "No test user available")
+            return
+        
+        # Test access control for free users (should be denied)
+        timer_data = {
+            "name": "Deep Work Session",
+            "focus_minutes": 45,
+            "short_break_minutes": 10,
+            "long_break_minutes": 20
+        }
+        
+        success, data, status_code = self.make_request("POST", f"/users/{self.test_user_id}/custom-timers", timer_data)
+        
+        if status_code == 403:
+            self.log_test("Premium Access Control", True, "Free users correctly denied access")
+        else:
+            self.log_test("Premium Access Control", False, f"Expected 403, got {status_code}: {data}")
+        
+        # Test retrieval for free users (should return empty list)
+        success, data, status_code = self.make_request("GET", f"/users/{self.test_user_id}/custom-timers")
+        
+        if success and status_code == 200:
+            if isinstance(data, list) and len(data) == 0:
+                self.log_test("Free User Timer Retrieval", True, "Returns empty list for free users")
+            else:
+                self.log_test("Free User Timer Retrieval", False, f"Expected empty list, got: {data}")
+        else:
+            self.log_test("Free User Timer Retrieval", False, f"Status: {status_code}, Error: {data}")
+        
+        # Test with premium user (simulate by upgrading user temporarily)
+        # First, upgrade user to premium for testing
+        upgrade_data = {
+            "subscription_tier": "premium",
+            "subscription_expires_at": "2025-12-31T23:59:59"
+        }
+        
+        # Note: This would normally be done through payment completion, but for testing we simulate it
+        # In a real scenario, this would happen through the payment webhook
+        print("   Note: Testing premium features requires actual subscription upgrade via payment")
+
+    def test_subscription_status_management(self):
+        """Test Enhanced User Management - Subscription status and premium upgrades"""
+        print("\n👑 Testing Subscription Status Management...")
+        
+        if not self.test_user_id:
+            self.log_test("Subscription Status", False, "No test user available")
+            return
+        
+        # Get current user subscription status
+        success, data, status_code = self.make_request("GET", f"/users/{self.test_user_id}")
+        
+        if success and status_code == 200:
+            subscription_fields = ["subscription_tier", "subscription_expires_at"]
+            
+            if "subscription_tier" in data:
+                if data["subscription_tier"] in ["free", "premium"]:
+                    self.log_test("Subscription Tier Tracking", True, f"Tier: {data['subscription_tier']}")
+                    
+                    # Test premium XP bonus logic (indirectly through task completion)
+                    if data["subscription_tier"] == "premium":
+                        self.log_test("Premium Status Detection", True, "User has premium status")
+                        
+                        # Check expiry date
+                        if data.get("subscription_expires_at"):
+                            self.log_test("Subscription Expiry Tracking", True, f"Expires: {data['subscription_expires_at']}")
+                        else:
+                            self.log_test("Subscription Expiry Tracking", False, "Missing expiry date for premium user")
+                    else:
+                        self.log_test("Free Tier Status", True, "User has free tier status")
+                else:
+                    self.log_test("Subscription Tier Tracking", False, f"Invalid tier: {data['subscription_tier']}")
+            else:
+                self.log_test("Subscription Tier Tracking", False, "Missing subscription_tier field")
+        else:
+            self.log_test("Subscription Status", False, f"Status: {status_code}, Error: {data}")
+
+    def test_premium_xp_bonuses(self):
+        """Test Premium XP Bonuses - 20% extra XP for premium users"""
+        print("\n⭐ Testing Premium XP Bonuses...")
+        
+        if not self.test_user_id:
+            self.log_test("Premium XP Bonuses", False, "No test user available")
+            return
+        
+        # Get current user to check subscription status
+        success, user_data, _ = self.make_request("GET", f"/users/{self.test_user_id}")
+        
+        if success:
+            subscription_tier = user_data.get("subscription_tier", "free")
+            
+            if subscription_tier == "premium":
+                # Test premium XP bonus on task completion
+                initial_xp = user_data.get("total_xp", 0)
+                
+                # Create and complete a task
+                task_data = {"title": "Premium XP Test Task", "description": "Testing premium XP bonus"}
+                success, task, _ = self.make_request("POST", f"/users/{self.test_user_id}/tasks", task_data)
+                
+                if success:
+                    task_id = task["id"]
+                    
+                    # Complete the task
+                    update_data = {"status": "completed"}
+                    success, _, _ = self.make_request("PUT", f"/users/{self.test_user_id}/tasks/{task_id}", update_data)
+                    
+                    if success:
+                        time.sleep(1)  # Allow time for XP update
+                        success, updated_user, _ = self.make_request("GET", f"/users/{self.test_user_id}")
+                        
+                        if success:
+                            new_xp = updated_user.get("total_xp", 0)
+                            xp_gained = new_xp - initial_xp
+                            expected_xp = int(10 * 1.2)  # 10 base XP + 20% premium bonus = 12 XP
+                            
+                            if xp_gained == expected_xp:
+                                self.log_test("Premium Task XP Bonus", True, f"Gained {xp_gained} XP (20% bonus applied)")
+                            else:
+                                self.log_test("Premium Task XP Bonus", False, f"Expected {expected_xp} XP, got {xp_gained}")
+                        else:
+                            self.log_test("Premium Task XP Bonus", False, "Could not verify XP update")
+                    else:
+                        self.log_test("Premium Task XP Bonus", False, "Could not complete task")
+                else:
+                    self.log_test("Premium Task XP Bonus", False, "Could not create task")
+            else:
+                self.log_test("Premium XP Bonuses", True, f"User has {subscription_tier} tier - no premium bonus expected")
+        else:
+            self.log_test("Premium XP Bonuses", False, "Could not retrieve user data")
+
+    def test_premium_achievements(self):
+        """Test Premium Supporter Achievement unlocking"""
+        print("\n🏅 Testing Premium Achievements...")
+        
+        if not self.test_user_id:
+            self.log_test("Premium Achievements", False, "No test user available")
+            return
+        
+        # Get current achievements
+        success, achievements, status_code = self.make_request("GET", f"/users/{self.test_user_id}/achievements")
+        
+        if success and status_code == 200:
+            # Look for Premium Supporter achievement
+            premium_achievement = None
+            for achievement in achievements:
+                if achievement.get("achievement_type") == "premium_subscriber":
+                    premium_achievement = achievement
+                    break
+            
+            # Get user subscription status
+            success, user_data, _ = self.make_request("GET", f"/users/{self.test_user_id}")
+            
+            if success:
+                subscription_tier = user_data.get("subscription_tier", "free")
+                
+                if subscription_tier == "premium":
+                    if premium_achievement:
+                        if premium_achievement["title"] == "Premium Supporter":
+                            self.log_test("Premium Supporter Achievement", True, f"Achievement unlocked: {premium_achievement['description']}")
+                        else:
+                            self.log_test("Premium Supporter Achievement", False, f"Wrong title: {premium_achievement['title']}")
+                    else:
+                        self.log_test("Premium Supporter Achievement", False, "Premium user missing Premium Supporter achievement")
+                else:
+                    if not premium_achievement:
+                        self.log_test("Premium Achievement Access Control", True, "Free user correctly has no premium achievement")
+                    else:
+                        self.log_test("Premium Achievement Access Control", False, "Free user has premium achievement")
+            else:
+                self.log_test("Premium Achievements", False, "Could not retrieve user data")
+        else:
+            self.log_test("Premium Achievements", False, f"Status: {status_code}, Error: {achievements}")
+
+    def test_productivity_adaptive_themes(self):
+        """Test Productivity-based Adaptive Themes for premium users"""
+        print("\n🎨 Testing Productivity Adaptive Themes...")
+        
+        if not self.test_user_id:
+            self.log_test("Adaptive Themes", False, "No test user available")
+            return
+        
+        # Get dashboard data which includes theme information
+        success, data, status_code = self.make_request("GET", f"/users/{self.test_user_id}/dashboard")
+        
+        if success and status_code == 200:
+            theme = data.get("theme", {})
+            user = data.get("user", {})
+            
+            if theme and "name" in theme:
+                subscription_tier = user.get("subscription_tier", "free")
+                
+                if subscription_tier == "premium":
+                    # Premium users should get productivity-based themes
+                    productivity_themes = ["High Energy", "Steady Progress", "Getting Started", "Fresh Start"]
+                    if theme["name"] in productivity_themes:
+                        self.log_test("Premium Adaptive Themes", True, f"Productivity theme: {theme['name']}")
+                    else:
+                        # Could also be daily theme if no activity yet
+                        daily_themes = ["Motivation Monday", "Tranquil Tuesday", "Wonderful Wednesday", 
+                                      "Thoughtful Thursday", "Fresh Friday", "Serene Saturday", "Soulful Sunday"]
+                        if theme["name"] in daily_themes:
+                            self.log_test("Premium Adaptive Themes", True, f"Daily theme (low activity): {theme['name']}")
+                        else:
+                            self.log_test("Premium Adaptive Themes", False, f"Unknown theme: {theme['name']}")
+                else:
+                    # Free users should get daily themes only
+                    daily_themes = ["Motivation Monday", "Tranquil Tuesday", "Wonderful Wednesday", 
+                                  "Thoughtful Thursday", "Fresh Friday", "Serene Saturday", "Soulful Sunday"]
+                    if theme["name"] in daily_themes:
+                        self.log_test("Free User Daily Themes", True, f"Daily theme: {theme['name']}")
+                    else:
+                        self.log_test("Free User Daily Themes", False, f"Free user got non-daily theme: {theme['name']}")
+            else:
+                self.log_test("Adaptive Themes", False, f"Missing theme data: {theme}")
+        else:
+            self.log_test("Adaptive Themes", False, f"Status: {status_code}, Error: {data}")
 
     def run_comprehensive_test(self):
         """Run all backend tests systematically"""
