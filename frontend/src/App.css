@@ -258,14 +258,40 @@ body {
 }
 
 .premium-badge {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  color: white;
   font-size: 0.75rem;
   font-weight: 600;
   padding: 0.25rem 0.5rem;
   border-radius: 9999px;
   text-transform: uppercase;
   letter-spacing: 0.025em;
+  color: white;
+}
+
+.premium-badge.legacy {
+  background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+  border: 1px solid #7c3aed;
+}
+
+.premium-badge.monthly {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+
+.premium-badge.yearly {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.premium-badge.lifetime {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  animation: premium-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes premium-glow {
+  from {
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+  }
+  to {
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.6), 0 0 30px rgba(245, 158, 11, 0.4);
+  }
 }
 
 .nav-items {
