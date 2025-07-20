@@ -485,6 +485,99 @@ BADGE_SYSTEM = {
     }
 }
 
+# Ghosted Features System - Show premium features to free users with upgrade prompts
+GHOSTED_FEATURES = {
+    "custom_timers": {
+        "feature_name": "Custom Timer Settings",
+        "description": "Create personalized focus sessions with custom durations",
+        "icon": "⏰",
+        "ghost_preview": {
+            "90": "Deep Work (90/15 min)", 
+            "60": "Power Hour (60/10 min)",
+            "45": "Focus Sprint (45/5 min)",
+            "120": "Ultra Deep (120/20 min)"
+        },
+        "upgrade_message": "Unlock custom timers to maximize your deep work potential!",
+        "required_tier": "premium_monthly",
+        "upgrade_cta": "Upgrade to Premium",
+        "preview_limit": 2  # Show 2 options, then show upgrade prompt
+    },
+    "premium_themes": {
+        "feature_name": "Premium Theme Collection", 
+        "description": "Beautiful themes designed for enhanced focus and productivity",
+        "icon": "🎨",
+        "ghost_preview": {
+            "darkmode": {"name": "Dark Focus", "colors": ["#1a1a1a", "#8b5cf6"], "preview": "🌙"},
+            "focus_black": {"name": "Focus Black", "colors": ["#000000", "#ffffff"], "preview": "⚫"}, 
+            "nature_set": {"name": "Nature Calm", "colors": ["#065f46", "#10b981"], "preview": "🌿"},
+            "ocean_blue": {"name": "Ocean Deep", "colors": ["#0c4a6e", "#0284c7"], "preview": "🌊"}
+        },
+        "upgrade_message": "Personalize your workspace with premium themes!",
+        "required_tier": "premium_monthly", 
+        "upgrade_cta": "Unlock Premium Themes",
+        "preview_limit": 1
+    },
+    "premium_sounds": {
+        "feature_name": "Premium Sound Library",
+        "description": "High-quality focus sounds and ambient music", 
+        "icon": "🎵",
+        "ghost_preview": {
+            "rain": {"name": "Gentle Rain", "duration": "Looped", "preview": "🌧️"},
+            "forest": {"name": "Forest Sounds", "duration": "Looped", "preview": "🌲"},
+            "cafe": {"name": "Coffee Shop", "duration": "Looped", "preview": "☕"},
+            "ocean": {"name": "Ocean Waves", "duration": "Looped", "preview": "🌊"},
+            "fireplace": {"name": "Cozy Fireplace", "duration": "Looped", "preview": "🔥"}
+        },
+        "upgrade_message": "Enhance focus with premium soundscapes!",
+        "required_tier": "premium_monthly",
+        "upgrade_cta": "Get Premium Sounds", 
+        "preview_limit": 1
+    },
+    "advanced_analytics": {
+        "feature_name": "Advanced Analytics Dashboard",
+        "description": "Detailed insights into your productivity patterns",
+        "icon": "📊", 
+        "ghost_preview": {
+            "weekly_trends": {"name": "Weekly Trends", "chart": "line", "preview": "📈"},
+            "focus_heatmap": {"name": "Focus Heatmap", "chart": "heatmap", "preview": "🔥"},
+            "productivity_score": {"name": "Productivity Score", "chart": "gauge", "preview": "⭐"},
+            "goal_tracking": {"name": "Goal Progress", "chart": "progress", "preview": "🎯"}
+        },
+        "upgrade_message": "Unlock detailed analytics to optimize your productivity!",
+        "required_tier": "premium_monthly",
+        "upgrade_cta": "View Full Analytics",
+        "preview_limit": 1
+    },
+    "cloud_backup": {
+        "feature_name": "Cloud Backup & Sync",
+        "description": "Access your data across all devices with automatic backup",
+        "icon": "☁️",
+        "ghost_preview": {
+            "auto_sync": {"name": "Auto Sync", "status": "Available", "preview": "🔄"},
+            "device_sync": {"name": "Multi-Device", "devices": 3, "preview": "📱💻"},
+            "backup_history": {"name": "Backup History", "backups": 7, "preview": "🗂️"}
+        },
+        "upgrade_message": "Never lose your progress - sync across all devices!",
+        "required_tier": "premium_monthly",
+        "upgrade_cta": "Enable Cloud Sync",
+        "preview_limit": 1
+    },
+    "achievement_accelerator": {
+        "feature_name": "Achievement Accelerator",
+        "description": "Unlock achievements faster and earn bonus XP",
+        "icon": "🚀",
+        "ghost_preview": {
+            "2x_xp": {"name": "2x XP Weekends", "multiplier": 2.0, "preview": "⚡"},
+            "bonus_achievements": {"name": "Bonus Achievements", "count": 5, "preview": "🏆"}, 
+            "streak_protection": {"name": "Streak Insurance", "days": 7, "preview": "🛡️"}
+        },
+        "upgrade_message": "Accelerate your progress with premium bonuses!",
+        "required_tier": "premium_monthly", 
+        "upgrade_cta": "Boost Progress",
+        "preview_limit": 1
+    }
+}
+
 # Models
 class Task(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
