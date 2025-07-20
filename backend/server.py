@@ -993,21 +993,32 @@ async def get_subscription_status(session_id: str):
         if update_data["payment_status"] == "completed":
             update_data["completed_at"] = datetime.utcnow()
             
-            # Upgrade user to premium (using demo user for now)
+            # Upgrade user to appropriate premium tier
             user_id = transaction["user_id"]
             package = SUBSCRIPTION_PACKAGES[transaction["package_id"]]
             
-            # Calculate subscription expiry
-            expires_at = datetime.utcnow() + timedelta(days=package["duration_months"] * 30)
+            # Determine subscription tier based on package
+            subscription_tier = package.get("tier", "premium")  # Default to legacy premium
+            
+            # Calculate subscription expiry (999 months = lifetime)
+            if package["duration_months"] >= 999:
+                expires_at = datetime.utcnow() + timedelta(days=365 * 10)  # 10 years effectively lifetime
+            else:
+                expires_at = datetime.utcnow() + timedelta(days=package["duration_months"] * 30)
+            
+            # Update user with new tier and expiry
+            update_fields = {
+                "subscription_tier": subscription_tier,
+                "subscription_expires_at": expires_at
+            }
+            
+            # Add badge for new tier users
+            if package.get("badge"):
+                update_fields["premium_badge"] = package["badge"]
             
             await db.users.update_one(
                 {"id": user_id},
-                {
-                    "$set": {
-                        "subscription_tier": "premium",
-                        "subscription_expires_at": expires_at
-                    }
-                }
+                {"$set": update_fields}
             )
             
             # Process instant referral commission if applicable
