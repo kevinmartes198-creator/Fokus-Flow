@@ -1,40 +1,256 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from contextlib import asynccontextmanager
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timedelta
 from enum import Enum
 import hashlib
 import secrets
+import asyncio
+import time
+from collections import defaultdict
+import json
+import sys
+import traceback
 
 # Stripe integration
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 import stripe
 
+# Production Configuration
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# Environment Detection
+ENVIRONMENT = os.environ.get('ENVIRONMENT', 'development')
+DEBUG_MODE = ENVIRONMENT == 'development'
 
-# Stripe initialization
+# Enhanced Logging Configuration
+log_level = logging.DEBUG if DEBUG_MODE else logging.INFO
+logging.basicConfig(
+    level=log_level,
+    format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler(f'{ROOT_DIR}/logs/focusflow.log') if ROOT_DIR.joinpath('logs').exists() else logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Rate Limiting Configuration
+RATE_LIMIT_REQUESTS = 100  # requests per window
+RATE_LIMIT_WINDOW = 60  # seconds
+rate_limiter = defaultdict(list)
+
+# Database Connection with Production Settings
+mongo_url = os.environ['MONGO_URL']
+client = AsyncIOMotorClient(
+    mongo_url,
+    maxPoolSize=50,  # Production pool size
+    minPoolSize=5,
+    maxIdleTimeMS=30000,
+    serverSelectionTimeoutMS=5000,
+    connectTimeoutMS=10000,
+    socketTimeoutMS=20000
+)
+db = client[os.environ.get('DB_NAME', 'focusflow_prod')]
+
+# Stripe Configuration with Error Handling
 stripe_api_key = os.environ.get('STRIPE_API_KEY')
 if not stripe_api_key:
-    raise ValueError("STRIPE_API_KEY environment variable is required")
+    if ENVIRONMENT == 'production':
+        raise ValueError("STRIPE_API_KEY environment variable is required in production")
+    else:
+        logger.warning("STRIPE_API_KEY not found - payment features will be disabled")
+        stripe_api_key = "sk_test_dummy_key_for_development"
 
-# Create the main app without a prefix
-app = FastAPI()
+stripe.api_key = stripe_api_key
 
-# Create a router with the /api prefix
+# Security Configuration
+security = HTTPBearer(auto_error=False)
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:3000,https://focusflow.app').split(',')
+
+# Application Context Manager for Production
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifecycle management"""
+    logger.info(f"Starting FocusFlow server in {ENVIRONMENT} mode")
+    
+    # Startup
+    try:
+        # Test database connection
+        await client.server_info()
+        logger.info("Database connection established")
+        
+        # Create indexes for production performance
+        await create_database_indexes()
+        logger.info("Database indexes created/verified")
+        
+    except Exception as e:
+        logger.error(f"Startup error: {e}")
+        raise
+    
+    yield
+    
+    # Shutdown
+    logger.info("Shutting down FocusFlow server")
+    client.close()
+
+# Create FastAPI app with production configuration
+app = FastAPI(
+    title="FocusFlow API",
+    description="Advanced Productivity & Focus Management Platform",
+    version="1.0.0",
+    debug=DEBUG_MODE,
+    lifespan=lifespan,
+    docs_url="/docs" if DEBUG_MODE else None,  # Disable docs in production
+    redoc_url="/redoc" if DEBUG_MODE else None
+)
+
+# Security Middleware
+if ENVIRONMENT == 'production':
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS)
+    
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    max_age=600,  # 10 minutes cache
+)
+
+# Create API router
 api_router = APIRouter(prefix="/api")
+
+# Production Error Handlers
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.warning(f"Validation error for {request.url}: {exc.errors()}")
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "error": "Invalid input data",
+            "details": exc.errors() if DEBUG_MODE else "Please check your input format"
+        }
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    logger.error(f"HTTP {exc.status_code} for {request.url}: {exc.detail}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": exc.detail,
+            "timestamp": datetime.utcnow().isoformat(),
+            "path": str(request.url.path)
+        }
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    error_id = str(uuid.uuid4())[:8]
+    logger.error(f"Unhandled error [{error_id}] for {request.url}: {str(exc)}")
+    if DEBUG_MODE:
+        logger.error(f"Traceback: {traceback.format_exc()}")
+    
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "error": "Internal server error",
+            "error_id": error_id,
+            "message": str(exc) if DEBUG_MODE else "An unexpected error occurred"
+        }
+    )
+
+# Rate Limiting Middleware
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    client_ip = request.client.host
+    current_time = time.time()
+    
+    # Clean old requests
+    rate_limiter[client_ip] = [req_time for req_time in rate_limiter[client_ip] 
+                               if current_time - req_time < RATE_LIMIT_WINDOW]
+    
+    # Check rate limit
+    if len(rate_limiter[client_ip]) >= RATE_LIMIT_REQUESTS:
+        logger.warning(f"Rate limit exceeded for {client_ip}")
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={"error": "Rate limit exceeded. Please try again later."}
+        )
+    
+    # Add current request
+    rate_limiter[client_ip].append(current_time)
+    
+    response = await call_next(request)
+    return response
+
+# Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = "default-src 'self'"
+    
+    if ENVIRONMENT == 'production':
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    
+    return response
+
+async def create_database_indexes():
+    """Create database indexes for production performance"""
+    try:
+        # User indexes
+        await db.users.create_index([("id", 1)], unique=True)
+        await db.users.create_index([("email", 1)], unique=True)
+        await db.users.create_index([("referral_code", 1)])
+        
+        # Task indexes
+        await db.tasks.create_index([("user_id", 1), ("completed", 1)])
+        await db.tasks.create_index([("user_id", 1), ("created_at", -1)])
+        
+        # Focus session indexes
+        await db.focus_sessions.create_index([("user_id", 1), ("created_at", -1)])
+        
+        # Achievement indexes
+        await db.achievements.create_index([("user_id", 1)])
+        
+        # Badge indexes
+        await db.user_badges.create_index([("user_id", 1), ("awarded_at", -1)])
+        
+        # Referral indexes
+        await db.referrals.create_index([("referrer_user_id", 1)])
+        await db.referrals.create_index([("referred_user_id", 1)])
+        
+        # Purchase indexes
+        await db.in_app_purchases.create_index([("user_id", 1), ("created_at", -1)])
+        
+        logger.info("Database indexes created successfully")
+        
+    except Exception as e:
+        logger.error(f"Error creating database indexes: {e}")
+
+# Input Validation Models with Security
 
 # Enums
 class TaskStatus(str, Enum):
