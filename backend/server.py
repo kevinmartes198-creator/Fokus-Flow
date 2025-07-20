@@ -853,6 +853,129 @@ async def check_streak_protection(user_id: str) -> bool:
         return datetime.utcnow() < inventory.streak_protection_until
     return False
 
+async def check_badge_unlocks(user_id: str, user_data: dict = None):
+    """Check and award new badges for user"""
+    if not user_data:
+        user_data = await db.users.find_one({"id": user_id})
+        if not user_data:
+            return []
+    
+    # Get existing badges
+    existing_badges = await db.user_badges.find({"user_id": user_id}).to_list(None)
+    existing_badge_ids = {badge["badge_id"] for badge in existing_badges}
+    
+    newly_unlocked = []
+    
+    # Check each badge for unlock conditions
+    for badge_id, badge in BADGE_SYSTEM["badges"].items():
+        if badge_id in existing_badge_ids:
+            continue  # Already has this badge
+            
+        unlock_condition = badge["unlock_condition"]
+        unlocked = False
+        
+        # Check different unlock conditions
+        if "level" in unlock_condition:
+            unlocked = user_data.get("level", 1) >= unlock_condition["level"]
+        elif "focus_sessions" in unlock_condition:
+            unlocked = user_data.get("focus_sessions_completed", 0) >= unlock_condition["focus_sessions"]
+        elif "streak" in unlock_condition:
+            unlocked = user_data.get("current_streak", 0) >= unlock_condition["streak"]
+        elif "subscription_tier" in unlock_condition:
+            unlocked = user_data.get("subscription_tier") == unlock_condition["subscription_tier"]
+        elif "referrals" in unlock_condition:
+            unlocked = user_data.get("total_referrals", 0) >= unlock_condition["referrals"]
+        elif "successful_referrals" in unlock_condition:
+            # Check from referrals collection
+            successful_refs = await db.referrals.count_documents({
+                "referrer_user_id": user_id,
+                "status": "completed"
+            })
+            unlocked = successful_refs >= unlock_condition["successful_referrals"]
+        elif "purchases" in unlock_condition:
+            # Check from in_app_purchases collection
+            purchases = await db.in_app_purchases.count_documents({
+                "user_id": user_id,
+                "status": "completed"
+            })
+            unlocked = purchases >= unlock_condition["purchases"]
+        elif "unique_purchases" in unlock_condition:
+            # Check unique products purchased
+            unique_purchases = await db.in_app_purchases.distinct("product_id", {
+                "user_id": user_id,
+                "status": "completed"
+            })
+            unlocked = len(unique_purchases) >= unlock_condition["unique_purchases"]
+        elif "joined_before" in unlock_condition:
+            # Check if user joined before a certain date
+            join_date = user_data.get("created_at")
+            if join_date:
+                target_date = datetime.fromisoformat(unlock_condition["joined_before"])
+                unlocked = join_date < target_date
+        
+        if unlocked:
+            # Award the badge
+            badge_record = {
+                "id": str(uuid.uuid4()),
+                "user_id": user_id,
+                "badge_id": badge_id,
+                "awarded_at": datetime.utcnow(),
+                "badge_data": badge
+            }
+            
+            await db.user_badges.insert_one(badge_record)
+            newly_unlocked.append(badge_record)
+            
+            # Apply badge rewards
+            await apply_badge_rewards(user_id, badge)
+    
+    return newly_unlocked
+
+async def apply_badge_rewards(user_id: str, badge: dict):
+    """Apply rewards from badge unlock"""
+    reward = badge.get("reward", {})
+    updates = {}
+    
+    # Apply XP reward
+    if "xp" in reward:
+        user = await db.users.find_one({"id": user_id})
+        new_xp = user["total_xp"] + reward["xp"]
+        new_level = (new_xp // 100) + 1
+        updates.update({
+            "total_xp": new_xp,
+            "level": new_level
+        })
+    
+    # Apply other rewards (themes, titles, etc.)
+    # These would be stored in user inventory or user profile
+    inventory_updates = {}
+    
+    if "special_theme" in reward or "exclusive_theme" in reward or "subscriber_theme" in reward:
+        inventory = await get_user_inventory(user_id)
+        theme_key = "special_theme" if "special_theme" in reward else (
+            "exclusive_theme" if "exclusive_theme" in reward else "subscriber_theme"
+        )
+        theme_name = reward[theme_key]
+        
+        if theme_name not in inventory.themes:
+            inventory_updates["themes"] = inventory.themes + [theme_name]
+    
+    if "title" in reward:
+        updates["user_title"] = reward["title"]
+    
+    # Update user if needed
+    if updates:
+        await db.users.update_one({"id": user_id}, {"$set": updates})
+    
+    # Update inventory if needed  
+    if inventory_updates:
+        inventory_updates["updated_at"] = datetime.utcnow()
+        await db.user_inventory.update_one(
+            {"user_id": user_id},
+            {"$set": inventory_updates},
+            upsert=True
+        )
+
 def get_level_from_xp(xp: int) -> int:
     """Calculate level based on XP (100 XP per level)"""
     return max(1, (xp // 100) + 1)
