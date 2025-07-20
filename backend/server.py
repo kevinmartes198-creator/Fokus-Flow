@@ -905,7 +905,7 @@ async def get_user_achievements(user_id: str):
 @api_router.post("/users/{user_id}/custom-timers", response_model=CustomTimerPreset)
 async def create_custom_timer(user_id: str, timer_data: CustomTimerCreate):
     user = await db.users.find_one({"id": user_id})
-    if not user or user.get("subscription_tier") != "premium":
+    if not user or not is_premium_user(user.get("subscription_tier")):
         raise HTTPException(status_code=403, detail="Premium subscription required")
     
     timer = CustomTimerPreset(user_id=user_id, **timer_data.dict())
