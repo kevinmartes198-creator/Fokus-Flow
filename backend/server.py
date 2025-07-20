@@ -681,7 +681,19 @@ async def create_user(user_data: UserCreate):
         updated_user = await db.users.find_one({"email": user_data.email})
         return User(**updated_user)
     
+    # Create new user
     user = User(**user_data.dict())
+    user.referral_code = generate_referral_code(user.id, user.email)
+    
+    # Handle referral if provided
+    if user_data.referral_code:
+        # Validate referral code exists
+        referrer = await db.users.find_one({"referral_code": user_data.referral_code})
+        if referrer:
+            user.referred_by = user_data.referral_code
+        else:
+            logging.warning(f"Invalid referral code provided: {user_data.referral_code}")
+    
     await db.users.insert_one(user.dict())
     return user
 
