@@ -1168,6 +1168,7 @@ const SubscriptionSuccessHandler = () => {
 
 const TaskManager = () => {
   const { user, tasks, setTasks, updateUserStats } = useAppContext();
+  const { t } = useLanguage();
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
 
@@ -1219,6 +1220,7 @@ const TaskManager = () => {
 
   const pendingTasks = tasks.filter(t => t.status === 'pending');
   const completedTasks = tasks.filter(t => t.status === 'completed');
+  const xpAmount = user?.subscription_tier === 'premium' ? '12' : '10';
 
   return (
     <div className="task-manager">
@@ -1228,7 +1230,7 @@ const TaskManager = () => {
             type="text"
             value={newTaskTitle}
             onChange={(e) => setNewTaskTitle(e.target.value)}
-            placeholder="What needs to be done?"
+            placeholder={t('whatTodo')}
             className="task-input"
             maxLength={100}
           />
@@ -1237,7 +1239,7 @@ const TaskManager = () => {
           <textarea
             value={newTaskDescription}
             onChange={(e) => setNewTaskDescription(e.target.value)}
-            placeholder="Add a description (optional)"
+            placeholder={t('addDescription')}
             className="task-textarea"
             rows={2}
             maxLength={200}
@@ -1247,9 +1249,9 @@ const TaskManager = () => {
           <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
           </svg>
-          Add Task (+{user?.subscription_tier === 'premium' ? '12' : '10'} XP)
+          {t('addTaskXp', { xp: xpAmount })}
           {user?.subscription_tier === 'premium' && (
-            <span className="premium-bonus">20% Bonus!</span>
+            <span className="premium-bonus">{t('premiumBonus')}</span>
           )}
         </button>
       </form>
@@ -1257,7 +1259,7 @@ const TaskManager = () => {
       <div className="task-sections">
         {pendingTasks.length > 0 && (
           <div className="task-section">
-            <h3 className="section-title">Pending Tasks ({pendingTasks.length})</h3>
+            <h3 className="section-title">{t('pendingTasks')} ({pendingTasks.length})</h3>
             <div className="task-list">
               {pendingTasks.map(task => (
                 <TaskItem
@@ -1273,7 +1275,7 @@ const TaskManager = () => {
 
         {completedTasks.length > 0 && (
           <div className="task-section">
-            <h3 className="section-title">Completed Tasks ({completedTasks.length})</h3>
+            <h3 className="section-title">{t('completedTasks')} ({completedTasks.length})</h3>
             <div className="task-list">
               {completedTasks.slice(0, 5).map(task => (
                 <TaskItem
@@ -1284,7 +1286,7 @@ const TaskManager = () => {
                 />
               ))}
               {completedTasks.length > 5 && (
-                <p className="more-tasks">+{completedTasks.length - 5} more completed tasks</p>
+                <p className="more-tasks">{t('moreTasks', { count: completedTasks.length - 5 })}</p>
               )}
             </div>
           </div>
@@ -1296,8 +1298,8 @@ const TaskManager = () => {
               <svg className="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
               </svg>
-              <h3>No tasks yet!</h3>
-              <p>Create your first task to get started on your productivity journey.</p>
+              <h3>{t('noTasksYet')}</h3>
+              <p>{t('createFirstTask')}</p>
             </div>
           </div>
         )}
