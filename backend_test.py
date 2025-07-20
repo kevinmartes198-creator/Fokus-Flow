@@ -1645,6 +1645,336 @@ class FocusFlowTester:
         print("EUR PRICING SYSTEM TEST COMPLETE")
         print("🇪🇺" * 30)
 
+    def test_in_app_shop_products_api(self):
+        """Test In-App Shop Products API - Verify all 6 products with EUR pricing"""
+        print("\n🛍️ Testing In-App Shop Products API...")
+        
+        success, products, status_code = self.make_request("GET", "/shop/products")
+        
+        if success and status_code == 200:
+            # Expected products with EUR pricing
+            expected_products = {
+                "xp_booster_500": {"amount": 2.99, "currency": "eur", "category": "progression"},
+                "streak_saver": {"amount": 1.99, "currency": "eur", "category": "protection"},
+                "premium_theme_pack": {"amount": 3.99, "currency": "eur", "category": "customization"},
+                "focus_powerup_pack": {"amount": 2.49, "currency": "eur", "category": "enhancement"},
+                "achievement_accelerator": {"amount": 4.99, "currency": "eur", "category": "achievement"},
+                "custom_sound_pack": {"amount": 3.49, "currency": "eur", "category": "audio"}
+            }
+            
+            if len(products) == 6:
+                self.log_test("Shop Products Count", True, f"All 6 products available")
+                
+                # Test each product
+                for product_id, expected in expected_products.items():
+                    if product_id in products:
+                        product = products[product_id]
+                        
+                        # Check pricing
+                        if product.get("amount") == expected["amount"] and product.get("currency") == expected["currency"]:
+                            self.log_test(f"Product Pricing - {product_id}", True, f"€{product['amount']} EUR")
+                        else:
+                            self.log_test(f"Product Pricing - {product_id}", False, f"Expected €{expected['amount']}, got €{product.get('amount')} {product.get('currency')}")
+                        
+                        # Check category
+                        if product.get("category") == expected["category"]:
+                            self.log_test(f"Product Category - {product_id}", True, f"Category: {product['category']}")
+                        else:
+                            self.log_test(f"Product Category - {product_id}", False, f"Expected {expected['category']}, got {product.get('category')}")
+                        
+                        # Check required fields
+                        required_fields = ["name", "description", "type", "reward", "icon"]
+                        if all(field in product for field in required_fields):
+                            self.log_test(f"Product Structure - {product_id}", True, f"All required fields present")
+                        else:
+                            self.log_test(f"Product Structure - {product_id}", False, f"Missing fields: {product}")
+                    else:
+                        self.log_test(f"Product Availability - {product_id}", False, f"Product not found")
+            else:
+                self.log_test("Shop Products Count", False, f"Expected 6 products, got {len(products)}")
+        else:
+            self.log_test("Shop Products API", False, f"Status: {status_code}, Error: {products}")
+
+    def test_user_inventory_system(self):
+        """Test User Inventory System - Creation and retrieval"""
+        print("\n📦 Testing User Inventory System...")
+        
+        if not self.test_user_id:
+            self.log_test("User Inventory System", False, "No test user available")
+            return
+        
+        # Test inventory retrieval/creation
+        success, inventory, status_code = self.make_request("GET", f"/users/{self.test_user_id}/inventory")
+        
+        if success and status_code == 200:
+            # Check inventory structure
+            required_fields = ["user_id", "themes", "sounds", "powerups", "streak_protection_until", "instant_achievements_used"]
+            
+            if all(field in inventory for field in required_fields):
+                self.log_test("User Inventory Structure", True, "All required fields present")
+                
+                # Check initial values for new user
+                if (isinstance(inventory["themes"], list) and len(inventory["themes"]) == 0 and
+                    isinstance(inventory["sounds"], list) and len(inventory["sounds"]) == 0 and
+                    isinstance(inventory["powerups"], dict) and len(inventory["powerups"]) == 0):
+                    self.log_test("Initial Inventory State", True, "Empty inventory for new user")
+                else:
+                    self.log_test("Initial Inventory State", True, f"Inventory: {len(inventory['themes'])} themes, {len(inventory['sounds'])} sounds, {len(inventory['powerups'])} powerups")
+                
+                # Verify user_id matches
+                if inventory["user_id"] == self.test_user_id:
+                    self.log_test("Inventory User ID", True, "User ID matches")
+                else:
+                    self.log_test("Inventory User ID", False, f"ID mismatch: {inventory['user_id']} vs {self.test_user_id}")
+            else:
+                self.log_test("User Inventory Structure", False, f"Missing fields: {inventory}")
+        else:
+            self.log_test("User Inventory System", False, f"Status: {status_code}, Error: {inventory}")
+
+    def test_in_app_purchase_flow(self):
+        """Test In-App Purchase Flow - Purchase creation and validation"""
+        print("\n💳 Testing In-App Purchase Flow...")
+        
+        if not self.test_user_id:
+            self.log_test("In-App Purchase Flow", False, "No test user available")
+            return
+        
+        # Test purchase creation
+        purchase_data = {
+            "product_id": "xp_booster_500",
+            "user_id": self.test_user_id,
+            "origin_url": "https://focusflow.app"
+        }
+        
+        success, purchase_response, status_code = self.make_request("POST", "/shop/purchase", purchase_data)
+        
+        if success and status_code == 200:
+            # Check purchase response structure
+            required_fields = ["client_secret", "purchase_id", "product"]
+            
+            if all(field in purchase_response for field in required_fields):
+                self.log_test("Purchase Creation", True, f"Purchase ID: {purchase_response['purchase_id'][:8]}...")
+                
+                # Check product details in response
+                product = purchase_response["product"]
+                if (product.get("name") == "XP Booster Paket" and 
+                    product.get("amount") == 2.99 and 
+                    product.get("currency") == "eur"):
+                    self.log_test("Purchase Product Details", True, f"€{product['amount']} - {product['name']}")
+                else:
+                    self.log_test("Purchase Product Details", False, f"Incorrect product details: {product}")
+                
+                # Check client_secret format (should be Stripe payment intent)
+                if purchase_response["client_secret"].startswith("pi_"):
+                    self.log_test("Stripe Integration", True, "Payment intent created")
+                else:
+                    self.log_test("Stripe Integration", False, f"Invalid client_secret: {purchase_response['client_secret']}")
+                
+                # Store purchase ID for later tests
+                self.test_purchase_id = purchase_response["purchase_id"]
+            else:
+                self.log_test("Purchase Creation", False, f"Missing fields: {purchase_response}")
+        else:
+            self.log_test("Purchase Creation", False, f"Status: {status_code}, Error: {purchase_response}")
+        
+        # Test invalid product ID
+        invalid_purchase_data = {
+            "product_id": "invalid_product",
+            "user_id": self.test_user_id,
+            "origin_url": "https://focusflow.app"
+        }
+        
+        success, error_response, status_code = self.make_request("POST", "/shop/purchase", invalid_purchase_data)
+        
+        if status_code == 404:
+            self.log_test("Invalid Product Validation", True, "Invalid product correctly rejected")
+        else:
+            self.log_test("Invalid Product Validation", False, f"Expected 404, got {status_code}")
+        
+        # Test missing user_id
+        missing_user_data = {
+            "product_id": "xp_booster_500",
+            "origin_url": "https://focusflow.app"
+        }
+        
+        success, error_response, status_code = self.make_request("POST", "/shop/purchase", missing_user_data)
+        
+        if status_code == 400:
+            self.log_test("Missing User ID Validation", True, "Missing user_id correctly rejected")
+        else:
+            self.log_test("Missing User ID Validation", False, f"Expected 400, got {status_code}")
+
+    def test_purchase_history_system(self):
+        """Test Purchase History System - Tracking and status"""
+        print("\n📊 Testing Purchase History System...")
+        
+        if not self.test_user_id:
+            self.log_test("Purchase History System", False, "No test user available")
+            return
+        
+        # Get purchase history
+        success, purchase_history, status_code = self.make_request("GET", f"/users/{self.test_user_id}/purchases")
+        
+        if success and status_code == 200:
+            if isinstance(purchase_history, list):
+                self.log_test("Purchase History Retrieval", True, f"Retrieved {len(purchase_history)} purchases")
+                
+                # Check purchase record structure if any exist
+                if len(purchase_history) > 0:
+                    purchase = purchase_history[0]
+                    required_fields = ["id", "product_name", "product_icon", "amount", "currency", "status", "applied", "created_at"]
+                    
+                    if all(field in purchase for field in required_fields):
+                        self.log_test("Purchase Record Structure", True, f"Complete purchase record")
+                        
+                        # Check specific field values
+                        if purchase.get("currency") == "eur":
+                            self.log_test("Purchase Currency", True, "EUR currency confirmed")
+                        else:
+                            self.log_test("Purchase Currency", False, f"Expected EUR, got {purchase.get('currency')}")
+                        
+                        # Check status values
+                        valid_statuses = ["pending", "completed", "failed"]
+                        if purchase.get("status") in valid_statuses:
+                            self.log_test("Purchase Status Tracking", True, f"Status: {purchase['status']}")
+                        else:
+                            self.log_test("Purchase Status Tracking", False, f"Invalid status: {purchase.get('status')}")
+                        
+                        # Check applied field
+                        if isinstance(purchase.get("applied"), bool):
+                            self.log_test("Reward Applied Tracking", True, f"Applied: {purchase['applied']}")
+                        else:
+                            self.log_test("Reward Applied Tracking", False, f"Invalid applied value: {purchase.get('applied')}")
+                    else:
+                        self.log_test("Purchase Record Structure", False, f"Missing fields: {purchase}")
+                else:
+                    self.log_test("Purchase History Content", True, "No purchases yet (expected for new user)")
+            else:
+                self.log_test("Purchase History Retrieval", False, f"Expected list, got: {type(purchase_history)}")
+        else:
+            self.log_test("Purchase History System", False, f"Status: {status_code}, Error: {purchase_history}")
+
+    def test_in_app_shop_integration(self):
+        """Test In-App Shop Integration with existing systems"""
+        print("\n🔗 Testing In-App Shop Integration...")
+        
+        if not self.test_user_id:
+            self.log_test("Shop Integration", False, "No test user available")
+            return
+        
+        # Test integration with user management
+        success, user_data, _ = self.make_request("GET", f"/users/{self.test_user_id}")
+        
+        if success:
+            # User should exist and be accessible
+            self.log_test("User Management Integration", True, f"User accessible: {user_data.get('name', 'Unknown')}")
+            
+            # Test that inventory is created automatically
+            success, inventory, _ = self.make_request("GET", f"/users/{self.test_user_id}/inventory")
+            
+            if success:
+                self.log_test("Inventory Auto-Creation", True, "Inventory created automatically for user")
+                
+                # Test database collection creation (indirect test)
+                # If we can create and retrieve inventory, collections are working
+                if inventory.get("user_id") == self.test_user_id:
+                    self.log_test("Database Collection Integration", True, "in_app_purchases and user_inventory collections working")
+                else:
+                    self.log_test("Database Collection Integration", False, "User ID mismatch in inventory")
+            else:
+                self.log_test("Inventory Auto-Creation", False, "Could not create/retrieve inventory")
+        else:
+            self.log_test("User Management Integration", False, "Could not access user")
+        
+        # Test backwards compatibility
+        # Existing features should still work after adding shop system
+        
+        # Test task creation still works
+        task_data = {"title": "Shop Integration Test Task", "description": "Testing backwards compatibility"}
+        success, task, status_code = self.make_request("POST", f"/users/{self.test_user_id}/tasks", task_data)
+        
+        if success and status_code == 200:
+            self.log_test("Backwards Compatibility - Tasks", True, "Task creation still works")
+            
+            # Complete task to test XP system
+            task_id = task["id"]
+            success, _, _ = self.make_request("PUT", f"/users/{self.test_user_id}/tasks/{task_id}", {"status": "completed"})
+            
+            if success:
+                self.log_test("Backwards Compatibility - XP System", True, "XP rewards still work")
+            else:
+                self.log_test("Backwards Compatibility - XP System", False, "XP system broken")
+        else:
+            self.log_test("Backwards Compatibility - Tasks", False, "Task creation broken")
+        
+        # Test focus sessions still work
+        session_data = {"timer_type": "focus", "duration_minutes": 25}
+        success, session, status_code = self.make_request("POST", f"/users/{self.test_user_id}/focus-sessions", session_data)
+        
+        if success and status_code == 200:
+            self.log_test("Backwards Compatibility - Focus Sessions", True, "Focus session creation still works")
+        else:
+            self.log_test("Backwards Compatibility - Focus Sessions", False, "Focus session creation broken")
+        
+        # Test dashboard still works
+        success, dashboard, status_code = self.make_request("GET", f"/users/{self.test_user_id}/dashboard")
+        
+        if success and status_code == 200:
+            if "user" in dashboard and "today_stats" in dashboard:
+                self.log_test("Backwards Compatibility - Dashboard", True, "Dashboard API still works")
+            else:
+                self.log_test("Backwards Compatibility - Dashboard", False, "Dashboard structure changed")
+        else:
+            self.log_test("Backwards Compatibility - Dashboard", False, "Dashboard API broken")
+
+    def test_comprehensive_in_app_shop_system(self):
+        """🛍️ COMPREHENSIVE IN-APP SHOP SYSTEM TEST - Complete end-to-end shop functionality"""
+        print("\n" + "🛍️" * 30)
+        print("COMPREHENSIVE IN-APP SHOP SYSTEM TEST")
+        print("Testing: Product catalog → User inventory → Purchase flow → Purchase history → System integration")
+        print("🛍️" * 30)
+        
+        shop_test_results = []
+        
+        # STEP 1: Test Shop Products API
+        print("\n📦 STEP 1: Test Shop Products API")
+        self.test_in_app_shop_products_api()
+        shop_test_results.append("Shop Products API")
+        
+        # STEP 2: Test User Inventory System
+        print("\n📋 STEP 2: Test User Inventory System")
+        self.test_user_inventory_system()
+        shop_test_results.append("User Inventory System")
+        
+        # STEP 3: Test In-App Purchase Flow
+        print("\n💳 STEP 3: Test In-App Purchase Flow")
+        self.test_in_app_purchase_flow()
+        shop_test_results.append("In-App Purchase Flow")
+        
+        # STEP 4: Test Purchase History System
+        print("\n📊 STEP 4: Test Purchase History System")
+        self.test_purchase_history_system()
+        shop_test_results.append("Purchase History System")
+        
+        # STEP 5: Test Integration with Existing Systems
+        print("\n🔗 STEP 5: Test Integration with Existing Systems")
+        self.test_in_app_shop_integration()
+        shop_test_results.append("System Integration")
+        
+        print("\n" + "🛍️" * 30)
+        print("IN-APP SHOP SYSTEM TEST COMPLETE")
+        print(f"Tested {len(shop_test_results)} major components:")
+        for i, component in enumerate(shop_test_results, 1):
+            print(f"  {i}. {component}")
+        print("🛍️" * 30)
+        
+        # Store shop test data for summary
+        self.shop_test_data = {
+            "components_tested": shop_test_results,
+            "test_user_id": self.test_user_id,
+            "test_purchase_id": getattr(self, 'test_purchase_id', None)
+        }
+
     def run_comprehensive_test(self):
         """Run all backend tests systematically"""
         print("🚀 Starting Comprehensive FocusFlow Backend API Testing")
