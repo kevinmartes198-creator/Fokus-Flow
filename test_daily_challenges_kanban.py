@@ -70,9 +70,12 @@ class DailyChallengesKanbanTester:
         success, data, status_code = self.make_request("POST", "/users", user_data)
         
         if success and status_code == 200:
-            if "id" in data:
-                self.test_user_id = data["id"]
-                self.log_test("Test User Creation", True, f"Created user: {data['name']} (ID: {data['id'][:8]}...)")
+            # Handle nested user data structure
+            user_info = data.get("user", data)  # Try "user" key first, fallback to root
+            
+            if "id" in user_info:
+                self.test_user_id = user_info["id"]
+                self.log_test("Test User Creation", True, f"Created user: {user_info['name']} (ID: {user_info['id'][:8]}...)")
                 return True
             else:
                 self.log_test("Test User Creation", False, f"Missing user ID in response: {data}")
