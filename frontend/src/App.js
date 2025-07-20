@@ -1331,7 +1331,7 @@ const PomodoroSession = () => {
   };
 
   useEffect(() => {
-    if (user?.subscription_tier === 'premium') {
+    if (isPremiumUser(user?.subscription_tier)) {
       fetchCustomTimers();
     }
   }, [user]);
