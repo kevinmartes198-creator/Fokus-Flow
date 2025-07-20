@@ -107,6 +107,70 @@ SUBSCRIPTION_PACKAGES = {
     }
 }
 
+# In-App Purchase Products - Small one-time purchases (2-5€)
+IN_APP_PRODUCTS = {
+    "xp_booster_500": {
+        "amount": 2.99,
+        "currency": "eur",
+        "name": "XP Booster Paket",
+        "description": "Sofort +500 XP für deinen Level-Fortschritt",
+        "type": "instant_reward",
+        "reward": {"xp": 500},
+        "category": "progression",
+        "icon": "⚡"
+    },
+    "streak_saver": {
+        "amount": 1.99,
+        "currency": "eur", 
+        "name": "Streak Retter",
+        "description": "Schütze deinen Streak für 7 Tage - automatischer Schutz bei verpassten Tagen",
+        "type": "protection",
+        "reward": {"streak_protection_days": 7},
+        "category": "protection",
+        "icon": "🛡️"
+    },
+    "premium_theme_pack": {
+        "amount": 3.99,
+        "currency": "eur",
+        "name": "Premium Theme Pack",
+        "description": "Darkmode, Focus Black & Nature Set - 3 exklusive Designer-Themes",
+        "type": "unlock",
+        "reward": {"themes": ["darkmode", "focus_black", "nature_set"]},
+        "category": "customization",
+        "icon": "🎨"
+    },
+    "focus_powerup_pack": {
+        "amount": 2.49,
+        "currency": "eur",
+        "name": "Focus Power-Up Pack",
+        "description": "5x Turbo-Focus Booster für 1.5x XP während Sessions",
+        "type": "consumable",
+        "reward": {"powerups": [{"type": "focus_turbo", "count": 5, "multiplier": 1.5}]},
+        "category": "enhancement",
+        "icon": "🚀"
+    },
+    "achievement_accelerator": {
+        "amount": 4.99,
+        "currency": "eur",
+        "name": "Achievement Accelerator",
+        "description": "Schalte sofort 3 zufällige Achievements frei + Bonus XP",
+        "type": "instant_unlock",
+        "reward": {"instant_achievements": 3, "bonus_xp": 300},
+        "category": "achievement",
+        "icon": "🏆"
+    },
+    "custom_sound_pack": {
+        "amount": 3.49,
+        "currency": "eur",
+        "name": "Premium Sound Pack",
+        "description": "10 entspannende Fokus-Sounds: Regen, Wald, Café, Ozean & mehr",
+        "type": "unlock",
+        "reward": {"sounds": ["rain", "forest", "cafe", "ocean", "fireplace", "storm", "birds", "wind", "waves", "piano"]},
+        "category": "audio",
+        "icon": "🎵"
+    }
+}
+
 # Models
 class Task(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
