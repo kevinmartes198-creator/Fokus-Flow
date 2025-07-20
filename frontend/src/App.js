@@ -555,7 +555,285 @@ const LanguageSwitcher = () => {
   );
 };
 
-// Components
+// Referral Dashboard Component
+const ReferralDashboard = () => {
+  const { user } = useAppContext();
+  const { t } = useLanguage();
+  const [referralStats, setReferralStats] = useState(null);
+  const [referralHistory, setReferralHistory] = useState([]);
+  const [withdrawals, setWithdrawals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      fetchReferralData();
+    }
+  }, [user]);
+
+  const fetchReferralData = async () => {
+    try {
+      setLoading(true);
+      const [statsResponse, historyResponse, withdrawalResponse] = await Promise.all([
+        axios.get(`${API}/users/${user.id}/referral-stats`),
+        axios.get(`${API}/users/${user.id}/referrals?limit=10`),
+        axios.get(`${API}/users/${user.id}/withdrawals`)
+      ]);
+      
+      setReferralStats(statsResponse.data);
+      setReferralHistory(historyResponse.data);
+      setWithdrawals(withdrawalResponse.data);
+    } catch (error) {
+      console.error('Error fetching referral data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyReferralLink = () => {
+    if (referralStats?.referral_link) {
+      navigator.clipboard.writeText(referralStats.referral_link);
+      // Show success message
+      alert('Referral link copied to clipboard!');
+    }
+  };
+
+  const requestWithdrawal = async () => {
+    try {
+      const response = await axios.post(`${API}/users/${user.id}/withdraw`, {
+        method: "bank_transfer"
+      });
+      
+      if (response.data.amount > 0) {
+        alert(`Withdrawal request submitted for $${response.data.amount}!`);
+        fetchReferralData(); // Refresh data
+        setShowWithdrawModal(false);
+      }
+    } catch (error) {
+      console.error('Error requesting withdrawal:', error);
+      alert('Error processing withdrawal request');
+    }
+  };
+
+  if (loading) {
+    return <div className="loading">{t('loading')}</div>;
+  }
+
+  if (!referralStats) {
+    return <div className="error">Failed to load referral data</div>;
+  }
+
+  return (
+    <div className="referral-dashboard">
+      <div className="referral-header">
+        <h2 className="referral-title">💰 Earn $5 Per Referral</h2>
+        <p className="referral-subtitle">Share FocusFlow and earn money for each Premium signup!</p>
+      </div>
+
+      {/* Earnings Overview */}
+      <div className="earnings-overview">
+        <div className="earnings-card total">
+          <div className="earnings-icon">💳</div>
+          <div className="earnings-content">
+            <div className="earnings-amount">${referralStats.total_commission_earned.toFixed(2)}</div>
+            <div className="earnings-label">Total Earned</div>
+          </div>
+        </div>
+
+        <div className="earnings-card available">
+          <div className="earnings-icon">💰</div>
+          <div className="earnings-content">
+            <div className="earnings-amount">${referralStats.available_for_withdrawal.toFixed(2)}</div>
+            <div className="earnings-label">Available Now</div>
+          </div>
+        </div>
+
+        <div className="earnings-card referrals">
+          <div className="earnings-icon">👥</div>
+          <div className="earnings-content">
+            <div className="earnings-amount">{referralStats.total_referrals}</div>
+            <div className="earnings-label">Total Referrals</div>
+          </div>
+        </div>
+
+        <div className="earnings-card potential">
+          <div className="earnings-icon">🎯</div>
+          <div className="earnings-content">
+            <div className="earnings-amount">${referralStats.earnings_breakdown.total_possible.toFixed(2)}</div>
+            <div className="earnings-label">Potential Earnings</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Instant Withdrawal Button */}
+      {referralStats.available_for_withdrawal > 0 && (
+        <div className="withdrawal-section">
+          <div className="withdrawal-card">
+            <div className="withdrawal-content">
+              <h3>💸 ${referralStats.available_for_withdrawal.toFixed(2)} Ready to Withdraw!</h3>
+              <p>Your commission is ready for instant withdrawal to your bank account.</p>
+              <button 
+                className="withdraw-btn instant"
+                onClick={() => setShowWithdrawModal(true)}
+              >
+                Withdraw ${referralStats.available_for_withdrawal.toFixed(2)} Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Referral Link Sharing */}
+      <div className="referral-sharing">
+        <h3>🔗 Your Referral Link</h3>
+        <div className="referral-link-card">
+          <div className="referral-code-display">
+            <span className="referral-code">{referralStats.referral_code}</span>
+            <span className="referral-commission">+$5.00</span>
+          </div>
+          <div className="referral-link-container">
+            <input 
+              type="text" 
+              value={referralStats.referral_link} 
+              readOnly 
+              className="referral-link-input"
+            />
+            <button className="copy-link-btn" onClick={copyReferralLink}>
+              📋 Copy Link
+            </button>
+          </div>
+          <p className="referral-instruction">
+            Share this link with friends. When they subscribe to Premium, you instantly earn $5!
+          </p>
+        </div>
+      </div>
+
+      {/* Social Sharing Buttons */}
+      <div className="social-sharing">
+        <h3>📢 Share & Earn</h3>
+        <div className="share-buttons">
+          <button 
+            className="share-btn twitter"
+            onClick={() => window.open(`https://twitter.com/intent/tweet?text=Check out FocusFlow, the best productivity app! Use my link to get started: ${encodeURIComponent(referralStats.referral_link)}`, '_blank')}
+          >
+            🐦 Twitter
+          </button>
+          <button 
+            className="share-btn facebook"
+            onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralStats.referral_link)}`, '_blank')}
+          >
+            📘 Facebook
+          </button>
+          <button 
+            className="share-btn linkedin"
+            onClick={() => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(referralStats.referral_link)}`, '_blank')}
+          >
+            💼 LinkedIn
+          </button>
+          <button 
+            className="share-btn whatsapp"
+            onClick={() => window.open(`https://wa.me/?text=Check out FocusFlow! ${encodeURIComponent(referralStats.referral_link)}`, '_blank')}
+          >
+            💬 WhatsApp
+          </button>
+        </div>
+      </div>
+
+      {/* Referral History */}
+      {referralHistory.length > 0 && (
+        <div className="referral-history">
+          <h3>📊 Recent Referrals</h3>
+          <div className="referral-list">
+            {referralHistory.map((referral, index) => (
+              <div key={referral.id || index} className={`referral-item ${referral.status}`}>
+                <div className="referral-info">
+                  <div className="referral-status">
+                    {referral.status === 'completed' ? '✅' : '⏳'}
+                  </div>
+                  <div className="referral-details">
+                    <div className="referral-date">
+                      {new Date(referral.created_at).toLocaleDateString()}
+                    </div>
+                    <div className="referral-amount">
+                      ${referral.commission_earned.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+                <div className="referral-status-text">
+                  {referral.status === 'completed' ? 'Earned' : 'Pending'}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* How It Works */}
+      <div className="how-it-works">
+        <h3>❓ How It Works</h3>
+        <div className="steps">
+          <div className="step">
+            <div className="step-number">1</div>
+            <div className="step-content">
+              <h4>Share Your Link</h4>
+              <p>Copy and share your unique referral link with friends</p>
+            </div>
+          </div>
+          <div className="step">
+            <div className="step-number">2</div>
+            <div className="step-content">
+              <h4>Friend Subscribes</h4>
+              <p>When they upgrade to Premium ($9.99/month)</p>
+            </div>
+          </div>
+          <div className="step">
+            <div className="step-number">3</div>
+            <div className="step-content">
+              <h4>You Get $5 Instantly</h4>
+              <p>Commission is credited immediately and ready to withdraw</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Withdrawal Modal */}
+      {showWithdrawModal && (
+        <div className="modal-overlay">
+          <div className="modal-content withdrawal-modal">
+            <div className="modal-header">
+              <h3>💸 Withdraw Earnings</h3>
+              <button className="modal-close" onClick={() => setShowWithdrawModal(false)}>×</button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="withdrawal-summary">
+                <div className="withdrawal-amount">
+                  ${referralStats.available_for_withdrawal.toFixed(2)}
+                </div>
+                <p>Available for withdrawal to your bank account</p>
+              </div>
+              
+              <div className="withdrawal-info">
+                <p><strong>Processing Time:</strong> 3-5 business days</p>
+                <p><strong>Fees:</strong> Free withdrawals</p>
+                <p><strong>Method:</strong> Bank Transfer</p>
+              </div>
+            </div>
+            
+            <div className="modal-footer">
+              <button className="modal-btn secondary" onClick={() => setShowWithdrawModal(false)}>
+                Cancel
+              </button>
+              <button className="modal-btn primary" onClick={requestWithdrawal}>
+                Confirm Withdrawal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 const Timer = ({ onComplete, isActive, timeLeft, totalTime }) => {
   const { t } = useLanguage();
   const progress = ((totalTime - timeLeft) / totalTime) * 100;
