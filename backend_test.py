@@ -1497,8 +1497,56 @@ class FocusFlowTester:
         return passed, total, failed_tests
 
 if __name__ == "__main__":
+    print("🎯 CRITICAL END-TO-END REFERRAL SYSTEM TEST")
+    print("=" * 60)
+    print("Testing complete user-to-user referral flow:")
+    print("Alex Rodriguez → refers → Maria Garcia → buys Premium → Alex gets $5")
+    print("=" * 60)
+    
     tester = FocusFlowTester()
-    passed, total, failed_tests = tester.run_comprehensive_test()
+    
+    # Run only the critical end-to-end referral test
+    tester.test_critical_end_to_end_referral_flow()
+    
+    # Show summary
+    print("\n" + "=" * 60)
+    print("🎯 CRITICAL REFERRAL TEST SUMMARY")
+    print("=" * 60)
+    
+    passed = sum(1 for result in tester.test_results if result["success"])
+    total = len(tester.test_results)
+    
+    print(f"Total Tests: {total}")
+    print(f"Passed: {passed}")
+    print(f"Failed: {total - passed}")
+    print(f"Success Rate: {(passed/total)*100:.1f}%")
+    
+    # Show failed tests
+    failed_tests = [result for result in tester.test_results if not result["success"]]
+    if failed_tests:
+        print(f"\n❌ FAILED TESTS ({len(failed_tests)}):")
+        for test in failed_tests:
+            print(f"  • {test['test']}: {test['details']}")
+    
+    # Show end-to-end referral results if available
+    if hasattr(tester, 'end_to_end_referral_results'):
+        results = tester.end_to_end_referral_results
+        print(f"\n🎯 END-TO-END REFERRAL FLOW RESULTS:")
+        print(f"Success Criteria Met: {results['criteria_met']}/{results['total_criteria']}")
+        print(f"Overall Success: {'✅ PASS' if results['success'] else '❌ FAIL'}")
+        
+        if results['success']:
+            print("\n🎉 CRITICAL SUCCESS: Complete referral flow is working!")
+            print("✓ Alex Rodriguez can refer users")
+            print("✓ Maria Garcia can sign up with referral code")
+            print("✓ Payment system tracks referral codes")
+            print("✓ Commission system is ready for $5 payouts")
+            print("✓ Withdrawal system is functional")
+            print("✓ Achievement system integrates with referrals")
+        else:
+            print("\n⚠️  NEEDS ATTENTION: Some referral components need fixes")
+    
+    print("\n" + "=" * 60)
     
     # Exit with appropriate code
     exit(0 if len(failed_tests) == 0 else 1)
