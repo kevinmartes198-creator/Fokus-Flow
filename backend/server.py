@@ -3273,6 +3273,304 @@ async def validate_referral_code(referral_code: str):
         "discount_info": "No discount applied, but your referrer gets rewarded!"
     }
 
+# Phase 5: Projects & Kanban Board API Endpoints
+
+@api_router.get("/users/{user_id}/projects", response_model=List[Project])
+async def get_user_projects(user_id: str, status: Optional[ProjectStatus] = None):
+    """Get all projects for a user"""
+    query = {"user_id": user_id}
+    if status:
+        query["status"] = status
+        
+    projects = await db.projects.find(query).sort("created_at", -1).to_list(None)
+    return [Project(**project) for project in projects]
+
+@api_router.post("/users/{user_id}/projects", response_model=Project)
+async def create_project(user_id: str, project_create: ProjectCreate):
+    """Create a new project for user"""
+    # Validate user exists
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    project = Project(
+        user_id=user_id,
+        name=project_create.name,
+        description=project_create.description,
+        color=project_create.color
+    )
+    
+    await db.projects.insert_one(project.dict())
+    return project
+
+@api_router.get("/projects/{project_id}", response_model=Project)
+async def get_project(project_id: str):
+    """Get project by ID"""
+    project = await db.projects.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return Project(**project)
+
+@api_router.put("/projects/{project_id}", response_model=Project)
+async def update_project(project_id: str, project_update: ProjectUpdate):
+    """Update project"""
+    project = await db.projects.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    update_data = {k: v for k, v in project_update.dict().items() if v is not None}
+    update_data["updated_at"] = datetime.utcnow()
+    
+    await db.projects.update_one({"id": project_id}, {"$set": update_data})
+    
+    updated_project = await db.projects.find_one({"id": project_id})
+    return Project(**updated_project)
+
+@api_router.delete("/projects/{project_id}")
+async def delete_project(project_id: str):
+    """Delete project and all associated tasks"""
+    project = await db.projects.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Delete all tasks in this project
+    await db.kanban_tasks.delete_many({"project_id": project_id})
+    
+    # Delete the project
+    await db.projects.delete_one({"id": project_id})
+    
+    return {"message": "Project and all tasks deleted successfully"}
+
+@api_router.get("/projects/{project_id}/kanban")
+async def get_project_kanban_board(project_id: str):
+    """Get Kanban board for a project"""
+    # Verify project exists
+    project = await db.projects.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Get all tasks for this project
+    tasks = await db.kanban_tasks.find({"project_id": project_id}).sort("position", 1).to_list(None)
+    
+    # Group tasks by column
+    board = {
+        "todo": [],
+        "in_progress": [],
+        "done": []
+    }
+    
+    for task in tasks:
+        column = task["column"]
+        if column in board:
+            board[column].append(KanbanTask(**task))
+    
+    return {
+        "project": Project(**project),
+        "board": board,
+        "task_count": len(tasks),
+        "todo_count": len(board["todo"]),
+        "in_progress_count": len(board["in_progress"]),
+        "done_count": len(board["done"])
+    }
+
+@api_router.post("/projects/{project_id}/tasks", response_model=KanbanTask)
+async def create_kanban_task(project_id: str, task_create: KanbanTaskCreate):
+    """Create a new task in the project Kanban board"""
+    # Verify project exists
+    project = await db.projects.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Calculate position (add to end of todo column)
+    todo_tasks_count = await db.kanban_tasks.count_documents({
+        "project_id": project_id,
+        "column": "todo"
+    })
+    
+    task = KanbanTask(
+        user_id=project["user_id"],
+        project_id=project_id,
+        title=task_create.title,
+        description=task_create.description,
+        column=TaskColumn.todo,
+        position=todo_tasks_count,
+        priority=task_create.priority,
+        due_date=task_create.due_date
+    )
+    
+    await db.kanban_tasks.insert_one(task.dict())
+    return task
+
+@api_router.get("/tasks/kanban/{task_id}", response_model=KanbanTask)
+async def get_kanban_task(task_id: str):
+    """Get Kanban task by ID"""
+    task = await db.kanban_tasks.find_one({"id": task_id})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return KanbanTask(**task)
+
+@api_router.put("/tasks/kanban/{task_id}", response_model=KanbanTask)
+async def update_kanban_task(task_id: str, task_update: KanbanTaskUpdate):
+    """Update Kanban task"""
+    task = await db.kanban_tasks.find_one({"id": task_id})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    update_data = {k: v for k, v in task_update.dict().items() if v is not None}
+    update_data["updated_at"] = datetime.utcnow()
+    
+    # If moving to done column, set completed_at
+    if update_data.get("column") == "done" and task["column"] != "done":
+        update_data["completed_at"] = datetime.utcnow()
+        
+        # Award XP for completing Kanban task
+        user = await db.users.find_one({"id": task["user_id"]})
+        if user:
+            xp_bonus = 15  # Kanban tasks worth more XP than regular tasks
+            premium_bonus = int(xp_bonus * 0.2) if is_premium_user(user.get("subscription_tier")) else 0
+            total_xp = xp_bonus + premium_bonus
+            
+            await db.users.update_one(
+                {"id": task["user_id"]}, 
+                {"$inc": {"total_xp": total_xp, "tasks_completed": 1}}
+            )
+            
+            # Check for achievements
+            await check_and_award_achievements(task["user_id"])
+            
+            # Check for badge unlocks
+            updated_user = await db.users.find_one({"id": task["user_id"]})
+            await check_badge_unlocks(task["user_id"], updated_user)
+    
+    # If moving from done column, remove completed_at
+    elif task["column"] == "done" and update_data.get("column") != "done":
+        update_data["completed_at"] = None
+    
+    await db.kanban_tasks.update_one({"id": task_id}, {"$set": update_data})
+    
+    updated_task = await db.kanban_tasks.find_one({"id": task_id})
+    return KanbanTask(**updated_task)
+
+@api_router.put("/tasks/kanban/{task_id}/move")
+async def move_kanban_task(task_id: str, move_request: TaskMoveRequest):
+    """Move task between columns with drag-and-drop support"""
+    task = await db.kanban_tasks.find_one({"id": task_id})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    old_column = task["column"]
+    new_column = move_request.column
+    new_position = move_request.position
+    
+    if old_column == new_column:
+        # Moving within same column - reorder
+        await reorder_tasks_in_column(task["project_id"], old_column, task_id, new_position)
+    else:
+        # Moving between columns
+        # Remove from old column and adjust positions
+        await remove_task_from_column(task["project_id"], old_column, task["position"])
+        
+        # Add to new column at specified position
+        await insert_task_in_column(task["project_id"], new_column, new_position)
+        
+        # Update the task
+        update_data = {
+            "column": new_column,
+            "position": new_position,
+            "updated_at": datetime.utcnow()
+        }
+        
+        # Handle completion logic
+        if new_column == "done" and old_column != "done":
+            update_data["completed_at"] = datetime.utcnow()
+            
+            # Award XP
+            user = await db.users.find_one({"id": task["user_id"]})
+            if user:
+                xp_bonus = 15
+                premium_bonus = int(xp_bonus * 0.2) if is_premium_user(user.get("subscription_tier")) else 0
+                total_xp = xp_bonus + premium_bonus
+                
+                await db.users.update_one(
+                    {"id": task["user_id"]}, 
+                    {"$inc": {"total_xp": total_xp, "tasks_completed": 1}}
+                )
+                
+                await check_and_award_achievements(task["user_id"])
+                updated_user = await db.users.find_one({"id": task["user_id"]})
+                await check_badge_unlocks(task["user_id"], updated_user)
+                
+        elif old_column == "done" and new_column != "done":
+            update_data["completed_at"] = None
+        
+        await db.kanban_tasks.update_one({"id": task_id}, {"$set": update_data})
+    
+    return {"message": "Task moved successfully"}
+
+@api_router.delete("/tasks/kanban/{task_id}")
+async def delete_kanban_task(task_id: str):
+    """Delete Kanban task"""
+    task = await db.kanban_tasks.find_one({"id": task_id})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    # Remove task and adjust positions in column
+    await remove_task_from_column(task["project_id"], task["column"], task["position"])
+    
+    # Delete the task
+    await db.kanban_tasks.delete_one({"id": task_id})
+    
+    return {"message": "Task deleted successfully"}
+
+# Helper functions for Kanban board management
+async def reorder_tasks_in_column(project_id: str, column: str, task_id: str, new_position: int):
+    """Reorder tasks within the same column"""
+    tasks = await db.kanban_tasks.find({
+        "project_id": project_id,
+        "column": column
+    }).sort("position", 1).to_list(None)
+    
+    # Remove the task being moved
+    task_to_move = None
+    filtered_tasks = []
+    for task in tasks:
+        if task["id"] == task_id:
+            task_to_move = task
+        else:
+            filtered_tasks.append(task)
+    
+    # Insert at new position
+    filtered_tasks.insert(new_position, task_to_move)
+    
+    # Update positions
+    for i, task in enumerate(filtered_tasks):
+        await db.kanban_tasks.update_one(
+            {"id": task["id"]},
+            {"$set": {"position": i, "updated_at": datetime.utcnow()}}
+        )
+
+async def remove_task_from_column(project_id: str, column: str, position: int):
+    """Remove task from column and adjust positions"""
+    await db.kanban_tasks.update_many(
+        {
+            "project_id": project_id,
+            "column": column,
+            "position": {"$gt": position}
+        },
+        {"$inc": {"position": -1}}
+    )
+
+async def insert_task_in_column(project_id: str, column: str, position: int):
+    """Insert space for task in column"""
+    await db.kanban_tasks.update_many(
+        {
+            "project_id": project_id,
+            "column": column,
+            "position": {"$gte": position}
+        },
+        {"$inc": {"position": 1}}
+    )
+
 # Include the router in the main app
 app.include_router(api_router)
 
