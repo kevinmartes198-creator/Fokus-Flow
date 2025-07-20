@@ -694,7 +694,7 @@ class FocusFlowTester:
         print("🚀 Starting Comprehensive FocusFlow Backend API Testing")
         print("=" * 60)
         
-        # Test in logical order
+        # Test in logical order - Core features first
         self.test_api_health()
         self.test_daily_theme_api()
         self.test_user_management()
@@ -703,6 +703,19 @@ class FocusFlowTester:
         self.test_gamification_system()
         self.test_achievement_system()
         self.test_dashboard_statistics()
+        
+        # NEW PAYMENT SYSTEM TESTS - Phase 2 Features
+        print("\n" + "=" * 60)
+        print("💳 PHASE 2: PAYMENT SYSTEM TESTING")
+        print("=" * 60)
+        
+        self.test_stripe_payment_integration()
+        self.test_payment_transaction_management()
+        self.test_premium_custom_timers_api()
+        self.test_subscription_status_management()
+        self.test_premium_xp_bonuses()
+        self.test_premium_achievements()
+        self.test_productivity_adaptive_themes()
         
         # Summary
         print("\n" + "=" * 60)
@@ -723,6 +736,17 @@ class FocusFlowTester:
             print(f"\n❌ FAILED TESTS ({len(failed_tests)}):")
             for test in failed_tests:
                 print(f"  • {test['test']}: {test['details']}")
+        
+        # Show payment system specific results
+        payment_tests = [result for result in self.test_results if any(keyword in result["test"].lower() 
+                        for keyword in ["stripe", "payment", "premium", "subscription", "checkout"])]
+        
+        if payment_tests:
+            payment_passed = sum(1 for test in payment_tests if test["success"])
+            print(f"\n💳 PAYMENT SYSTEM RESULTS:")
+            print(f"Payment Tests: {len(payment_tests)}")
+            print(f"Payment Passed: {payment_passed}")
+            print(f"Payment Success Rate: {(payment_passed/len(payment_tests))*100:.1f}%")
         
         print(f"\n✅ Test completed at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         
