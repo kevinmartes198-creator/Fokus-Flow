@@ -1975,6 +1975,373 @@ class FocusFlowTester:
             "test_purchase_id": getattr(self, 'test_purchase_id', None)
         }
 
+    def test_phase3_gamification_system(self):
+        """🎮 PHASE 3 GAMIFICATION SYSTEM - Comprehensive badge system, ghosted features, and daily challenges"""
+        print("\n" + "🎮" * 30)
+        print("PHASE 3 GAMIFICATION SYSTEM TESTING")
+        print("Testing: Badge System, Ghosted Features, Daily Challenges, Badge Unlocks, Reward System")
+        print("🎮" * 30)
+        
+        # STEP 1: Test Badge System API
+        print("\n🏆 STEP 1: Test Badge System API")
+        
+        success, badge_system, status_code = self.make_request("GET", "/gamification/badge-system")
+        
+        if success and status_code == 200:
+            # Verify badge system structure
+            if "categories" in badge_system and "badges" in badge_system:
+                categories = badge_system["categories"]
+                badges = badge_system["badges"]
+                
+                # Check for 6 categories
+                expected_categories = ["progression", "focus", "streak", "premium", "special", "social"]
+                if all(cat in categories for cat in expected_categories):
+                    self.log_test("Badge System Categories", True, f"All 6 categories present: {list(categories.keys())}")
+                else:
+                    self.log_test("Badge System Categories", False, f"Missing categories. Found: {list(categories.keys())}")
+                
+                # Check for 19 badges
+                if len(badges) >= 19:
+                    self.log_test("Badge System Count", True, f"Found {len(badges)} badges (expected 19+)")
+                    
+                    # Verify badge structure
+                    sample_badge = list(badges.values())[0]
+                    required_fields = ["name", "description", "icon", "category", "tier", "unlock_condition", "reward", "rarity"]
+                    if all(field in sample_badge for field in required_fields):
+                        self.log_test("Badge Structure", True, "All required badge fields present")
+                    else:
+                        self.log_test("Badge Structure", False, f"Missing fields in badge: {sample_badge}")
+                    
+                    # Test badge tiers
+                    tiers_found = set()
+                    rarities_found = set()
+                    for badge in badges.values():
+                        tiers_found.add(badge.get("tier"))
+                        rarities_found.add(badge.get("rarity"))
+                    
+                    expected_tiers = {"bronze", "silver", "gold", "platinum", "special"}
+                    expected_rarities = {"common", "uncommon", "rare", "legendary", "exclusive", "supporter"}
+                    
+                    if expected_tiers.intersection(tiers_found):
+                        self.log_test("Badge Tiers", True, f"Tiers found: {tiers_found}")
+                    else:
+                        self.log_test("Badge Tiers", False, f"Missing expected tiers: {tiers_found}")
+                    
+                    if expected_rarities.intersection(rarities_found):
+                        self.log_test("Badge Rarities", True, f"Rarities found: {rarities_found}")
+                    else:
+                        self.log_test("Badge Rarities", False, f"Missing expected rarities: {rarities_found}")
+                else:
+                    self.log_test("Badge System Count", False, f"Expected 19+ badges, found {len(badges)}")
+            else:
+                self.log_test("Badge System Structure", False, f"Missing categories or badges: {badge_system}")
+        else:
+            self.log_test("Badge System API", False, f"Status: {status_code}, Error: {badge_system}")
+        
+        # STEP 2: Test User Badge Management
+        print("\n🎖️ STEP 2: Test User Badge Management")
+        
+        if not self.test_user_id:
+            self.log_test("User Badge Management", False, "No test user available")
+            return
+        
+        # Test user badges retrieval
+        success, user_badges, status_code = self.make_request("GET", f"/users/{self.test_user_id}/badges")
+        
+        if success and status_code == 200:
+            if isinstance(user_badges, list):
+                self.log_test("User Badges Retrieval", True, f"Retrieved {len(user_badges)} user badges")
+                
+                # Test badge progress API
+                success, badge_progress, status_code = self.make_request("GET", f"/users/{self.test_user_id}/badge-progress")
+                
+                if success and status_code == 200:
+                    if "next_badges" in badge_progress and "progress" in badge_progress:
+                        self.log_test("Badge Progress API", True, f"Progress tracking working")
+                        
+                        # Check progress structure
+                        if badge_progress["next_badges"]:
+                            next_badge = badge_progress["next_badges"][0]
+                            if "badge_id" in next_badge and "progress_percentage" in next_badge:
+                                self.log_test("Badge Progress Structure", True, f"Next badge: {next_badge.get('badge_name', 'Unknown')}")
+                            else:
+                                self.log_test("Badge Progress Structure", False, f"Invalid progress structure: {next_badge}")
+                    else:
+                        self.log_test("Badge Progress API", False, f"Missing progress fields: {badge_progress}")
+                else:
+                    self.log_test("Badge Progress API", False, f"Status: {status_code}, Error: {badge_progress}")
+            else:
+                self.log_test("User Badges Retrieval", False, f"Expected list, got: {type(user_badges)}")
+        else:
+            self.log_test("User Badges Retrieval", False, f"Status: {status_code}, Error: {user_badges}")
+        
+        # STEP 3: Test Badge Unlock Detection
+        print("\n🔓 STEP 3: Test Badge Unlock Detection")
+        
+        # Test check badges endpoint
+        success, badge_check, status_code = self.make_request("POST", f"/users/{self.test_user_id}/check-badges")
+        
+        if success and status_code == 200:
+            if "newly_unlocked" in badge_check:
+                newly_unlocked = badge_check["newly_unlocked"]
+                self.log_test("Badge Unlock Detection", True, f"Checked badges, {len(newly_unlocked)} newly unlocked")
+                
+                # If badges were unlocked, verify structure
+                if newly_unlocked:
+                    badge = newly_unlocked[0]
+                    required_fields = ["badge_id", "awarded_at", "badge_data"]
+                    if all(field in badge for field in required_fields):
+                        self.log_test("Unlocked Badge Structure", True, f"Badge unlocked: {badge['badge_data'].get('name', 'Unknown')}")
+                    else:
+                        self.log_test("Unlocked Badge Structure", False, f"Missing fields: {badge}")
+            else:
+                self.log_test("Badge Unlock Detection", False, f"Missing newly_unlocked field: {badge_check}")
+        else:
+            self.log_test("Badge Unlock Detection", False, f"Status: {status_code}, Error: {badge_check}")
+        
+        # STEP 4: Test Ghosted Features System
+        print("\n👻 STEP 4: Test Ghosted Features System")
+        
+        success, ghosted_features, status_code = self.make_request("GET", "/gamification/ghosted-features")
+        
+        if success and status_code == 200:
+            # Check for 6 feature categories
+            expected_features = ["custom_timers", "premium_themes", "premium_sounds", "advanced_analytics", "cloud_backup", "achievement_accelerator"]
+            
+            if all(feature in ghosted_features for feature in expected_features):
+                self.log_test("Ghosted Features Categories", True, f"All 6 feature categories present")
+                
+                # Test feature structure
+                sample_feature = ghosted_features["custom_timers"]
+                required_fields = ["feature_name", "description", "icon", "ghost_preview", "upgrade_message", "required_tier"]
+                
+                if all(field in sample_feature for field in required_fields):
+                    self.log_test("Ghosted Feature Structure", True, f"Feature: {sample_feature['feature_name']}")
+                    
+                    # Test ghost preview structure
+                    ghost_preview = sample_feature["ghost_preview"]
+                    if isinstance(ghost_preview, dict) and len(ghost_preview) > 0:
+                        self.log_test("Ghost Preview Content", True, f"Preview items: {len(ghost_preview)}")
+                    else:
+                        self.log_test("Ghost Preview Content", False, f"Invalid preview: {ghost_preview}")
+                else:
+                    self.log_test("Ghosted Feature Structure", False, f"Missing fields: {sample_feature}")
+            else:
+                missing_features = [f for f in expected_features if f not in ghosted_features]
+                self.log_test("Ghosted Features Categories", False, f"Missing features: {missing_features}")
+        else:
+            self.log_test("Ghosted Features System", False, f"Status: {status_code}, Error: {ghosted_features}")
+        
+        # STEP 5: Test Daily Challenges System
+        print("\n📅 STEP 5: Test Daily Challenges System")
+        
+        success, daily_challenges, status_code = self.make_request("GET", "/gamification/daily-challenges")
+        
+        if success and status_code == 200:
+            # Check for 5 challenge types
+            expected_challenges = ["focus_master", "task_crusher", "streak_warrior", "theme_explorer", "early_bird"]
+            
+            if all(challenge in daily_challenges for challenge in expected_challenges):
+                self.log_test("Daily Challenges Count", True, f"All 5 challenge types present")
+                
+                # Test challenge structure
+                sample_challenge = daily_challenges["focus_master"]
+                required_fields = ["name", "description", "icon", "goal", "type", "reward", "difficulty", "unlock_offer"]
+                
+                if all(field in sample_challenge for field in required_fields):
+                    self.log_test("Daily Challenge Structure", True, f"Challenge: {sample_challenge['name']}")
+                    
+                    # Test unlock offer structure (monetization)
+                    unlock_offer = sample_challenge["unlock_offer"]
+                    offer_fields = ["product_id", "discount", "message"]
+                    
+                    if all(field in unlock_offer for field in offer_fields):
+                        self.log_test("Challenge Monetization", True, f"Discount: {unlock_offer['discount']}% off {unlock_offer['product_id']}")
+                    else:
+                        self.log_test("Challenge Monetization", False, f"Missing offer fields: {unlock_offer}")
+                    
+                    # Test reward structure
+                    reward = sample_challenge["reward"]
+                    if "xp" in reward:
+                        self.log_test("Challenge Rewards", True, f"XP reward: {reward['xp']}")
+                    else:
+                        self.log_test("Challenge Rewards", False, f"Missing XP reward: {reward}")
+                else:
+                    self.log_test("Daily Challenge Structure", False, f"Missing fields: {sample_challenge}")
+            else:
+                missing_challenges = [c for c in expected_challenges if c not in daily_challenges]
+                self.log_test("Daily Challenges Count", False, f"Missing challenges: {missing_challenges}")
+        else:
+            self.log_test("Daily Challenges System", False, f"Status: {status_code}, Error: {daily_challenges}")
+        
+        # STEP 6: Test User Daily Challenge Progress
+        print("\n📈 STEP 6: Test User Daily Challenge Progress")
+        
+        success, user_challenges, status_code = self.make_request("GET", f"/users/{self.test_user_id}/daily-challenges")
+        
+        if success and status_code == 200:
+            if "challenges" in user_challenges and "date" in user_challenges:
+                challenges = user_challenges["challenges"]
+                self.log_test("User Daily Challenges", True, f"Retrieved challenges for {user_challenges['date']}")
+                
+                # Test challenge progress structure
+                if challenges:
+                    sample_progress = list(challenges.values())[0]
+                    progress_fields = ["current_progress", "goal", "completed", "reward_claimed"]
+                    
+                    if all(field in sample_progress for field in progress_fields):
+                        self.log_test("Challenge Progress Structure", True, f"Progress tracking working")
+                    else:
+                        self.log_test("Challenge Progress Structure", False, f"Missing progress fields: {sample_progress}")
+            else:
+                self.log_test("User Daily Challenges", False, f"Missing challenges or date: {user_challenges}")
+        else:
+            self.log_test("User Daily Challenges", False, f"Status: {status_code}, Error: {user_challenges}")
+        
+        # STEP 7: Test Badge Unlock Conditions
+        print("\n🎯 STEP 7: Test Badge Unlock Conditions")
+        
+        # Get current user data to test unlock conditions
+        success, user_data, _ = self.make_request("GET", f"/users/{self.test_user_id}")
+        
+        if success:
+            level = user_data.get("level", 1)
+            focus_sessions = user_data.get("focus_sessions_completed", 0)
+            current_streak = user_data.get("current_streak", 0)
+            subscription_tier = user_data.get("subscription_tier", "free")
+            
+            # Test different unlock conditions
+            unlock_conditions_tested = []
+            
+            # Level-based badges
+            if level >= 5:
+                unlock_conditions_tested.append("Level 5+ (Rookie Producer)")
+            if level >= 15:
+                unlock_conditions_tested.append("Level 15+ (Productivity Expert)")
+            
+            # Focus session badges
+            if focus_sessions >= 10:
+                unlock_conditions_tested.append("10+ Focus Sessions")
+            if focus_sessions >= 100:
+                unlock_conditions_tested.append("100+ Focus Sessions")
+            
+            # Streak badges
+            if current_streak >= 3:
+                unlock_conditions_tested.append("3+ Day Streak")
+            if current_streak >= 30:
+                unlock_conditions_tested.append("30+ Day Streak")
+            
+            # Subscription badges
+            if subscription_tier != "free":
+                unlock_conditions_tested.append(f"Premium Subscription ({subscription_tier})")
+            
+            if unlock_conditions_tested:
+                self.log_test("Badge Unlock Conditions", True, f"Conditions met: {len(unlock_conditions_tested)}")
+            else:
+                self.log_test("Badge Unlock Conditions", True, "No conditions met yet (new user)")
+        else:
+            self.log_test("Badge Unlock Conditions", False, "Could not retrieve user data")
+        
+        # STEP 8: Test Badge Reward System
+        print("\n🎁 STEP 8: Test Badge Reward System")
+        
+        # Test different reward types by checking badge system
+        if 'badge_system' in locals() and badge_system:
+            badges = badge_system.get("badges", {})
+            reward_types_found = set()
+            
+            for badge in badges.values():
+                reward = badge.get("reward", {})
+                for reward_type in reward.keys():
+                    reward_types_found.add(reward_type)
+            
+            expected_reward_types = {"xp", "special_theme", "exclusive_theme", "subscriber_theme", "title", "focus_boost", "commission_bonus"}
+            
+            if expected_reward_types.intersection(reward_types_found):
+                self.log_test("Badge Reward Types", True, f"Reward types: {reward_types_found}")
+                
+                # Test XP rewards (50-1000 XP based on rarity)
+                xp_rewards = []
+                for badge in badges.values():
+                    reward = badge.get("reward", {})
+                    if "xp" in reward:
+                        xp_rewards.append(reward["xp"])
+                
+                if xp_rewards:
+                    min_xp = min(xp_rewards)
+                    max_xp = max(xp_rewards)
+                    if min_xp >= 50 and max_xp <= 1000:
+                        self.log_test("Badge XP Rewards", True, f"XP range: {min_xp}-{max_xp}")
+                    else:
+                        self.log_test("Badge XP Rewards", False, f"XP out of range: {min_xp}-{max_xp}")
+                
+                # Test special rewards
+                special_rewards = []
+                for badge in badges.values():
+                    reward = badge.get("reward", {})
+                    if any(key in reward for key in ["special_theme", "title", "focus_boost"]):
+                        special_rewards.append(badge["name"])
+                
+                if special_rewards:
+                    self.log_test("Special Badge Rewards", True, f"Special rewards in {len(special_rewards)} badges")
+                else:
+                    self.log_test("Special Badge Rewards", False, "No special rewards found")
+            else:
+                self.log_test("Badge Reward Types", False, f"Missing reward types: {reward_types_found}")
+        
+        # STEP 9: Test Integration with Existing Systems
+        print("\n🔗 STEP 9: Test Integration with Existing Systems")
+        
+        # Test that gamification integrates with user management
+        success, dashboard, _ = self.make_request("GET", f"/users/{self.test_user_id}/dashboard")
+        
+        if success:
+            # Check if dashboard includes gamification elements
+            gamification_elements = []
+            
+            if "recent_achievements" in dashboard:
+                gamification_elements.append("achievements")
+            if "level_progress" in dashboard:
+                gamification_elements.append("level_progress")
+            if "premium_features" in dashboard:
+                gamification_elements.append("premium_features")
+            
+            if len(gamification_elements) >= 3:
+                self.log_test("Gamification Integration", True, f"Dashboard includes: {gamification_elements}")
+            else:
+                self.log_test("Gamification Integration", False, f"Missing elements: {gamification_elements}")
+        else:
+            self.log_test("Gamification Integration", False, "Could not test dashboard integration")
+        
+        # STEP 10: Test Performance
+        print("\n⚡ STEP 10: Test Gamification Performance")
+        
+        import time
+        
+        # Test badge check performance
+        start_time = time.time()
+        success, _, _ = self.make_request("POST", f"/users/{self.test_user_id}/check-badges")
+        badge_check_time = time.time() - start_time
+        
+        if success and badge_check_time < 2.0:  # Should complete within 2 seconds
+            self.log_test("Badge Check Performance", True, f"Completed in {badge_check_time:.2f}s")
+        else:
+            self.log_test("Badge Check Performance", False, f"Too slow: {badge_check_time:.2f}s")
+        
+        # Test badge system API performance
+        start_time = time.time()
+        success, _, _ = self.make_request("GET", "/gamification/badge-system")
+        api_time = time.time() - start_time
+        
+        if success and api_time < 1.0:  # Should complete within 1 second
+            self.log_test("Badge System API Performance", True, f"Completed in {api_time:.2f}s")
+        else:
+            self.log_test("Badge System API Performance", False, f"Too slow: {api_time:.2f}s")
+        
+        print("\n" + "🎮" * 30)
+        print("PHASE 3 GAMIFICATION SYSTEM TEST COMPLETE")
+        print("🎮" * 30)
+
     def run_comprehensive_test(self):
         """Run all backend tests systematically"""
         print("🚀 Starting Comprehensive FocusFlow Backend API Testing")
