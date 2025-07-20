@@ -362,6 +362,84 @@ const useAppContext = () => {
   return context;
 };
 
+// Language Context
+const LanguageContext = createContext();
+
+const useLanguage = () => {
+  const context = useContext(LanguageContext);
+  if (!context) {
+    throw new Error('useLanguage must be used within a LanguageProvider');
+  }
+  return context;
+};
+
+const LanguageProvider = ({ children }) => {
+  const [language, setLanguage] = useState(() => {
+    const savedLang = localStorage.getItem('focusflow-language');
+    return savedLang || 'en';
+  });
+
+  const changeLanguage = (newLang) => {
+    setLanguage(newLang);
+    localStorage.setItem('focusflow-language', newLang);
+  };
+
+  const t = (key, params = {}) => {
+    const keys = key.split('.');
+    let value = translations[language];
+    
+    for (const k of keys) {
+      if (value && typeof value === 'object') {
+        value = value[k];
+      } else {
+        break;
+      }
+    }
+    
+    if (typeof value === 'string') {
+      // Replace parameters like {xp}, {count}
+      return value.replace(/\{(\w+)\}/g, (match, param) => {
+        return params[param] !== undefined ? params[param] : match;
+      });
+    }
+    
+    return key; // Return key if translation not found
+  };
+
+  return (
+    <LanguageContext.Provider value={{ language, changeLanguage, t }}>
+      {children}
+    </LanguageContext.Provider>
+  );
+};
+
+// Language Switcher Component
+const LanguageSwitcher = () => {
+  const { language, changeLanguage, t } = useLanguage();
+
+  const languages = [
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: 'es', name: 'Español', flag: '🇪🇸' },
+    { code: 'fr', name: 'Français', flag: '🇫🇷' }
+  ];
+
+  return (
+    <div className="language-switcher">
+      <select 
+        value={language} 
+        onChange={(e) => changeLanguage(e.target.value)}
+        className="language-select"
+      >
+        {languages.map((lang) => (
+          <option key={lang.code} value={lang.code}>
+            {lang.flag} {lang.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
 // Components
 const Timer = ({ onComplete, isActive, timeLeft, totalTime }) => {
   const progress = ((totalTime - timeLeft) / totalTime) * 100;
