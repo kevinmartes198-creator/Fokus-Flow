@@ -725,6 +725,24 @@ const ReferralDashboard = () => {
             📘 Facebook
           </button>
           <button 
+            className="share-btn instagram"
+            onClick={() => {
+              navigator.clipboard.writeText(`Check out FocusFlow! 🚀 The ultimate productivity app with Pomodoro timers and gamification. Use my referral link: ${referralStats.referral_link} #FocusFlow #Productivity #PomodoroTimer`);
+              alert('Instagram post text copied! Paste it in your Instagram story or post 📱');
+            }}
+          >
+            📸 Instagram
+          </button>
+          <button 
+            className="share-btn tiktok"
+            onClick={() => {
+              navigator.clipboard.writeText(`Boost your productivity with FocusFlow! 🎯 Pomodoro timer + gamification + earnings! My referral link: ${referralStats.referral_link} #ProductivityHacks #FocusFlow #PomodoroMethod #StudyTips`);
+              alert('TikTok caption copied! Use it for your productivity video 🎥');
+            }}
+          >
+            🎵 TikTok
+          </button>
+          <button 
             className="share-btn linkedin"
             onClick={() => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(referralStats.referral_link)}`, '_blank')}
           >
