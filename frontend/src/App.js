@@ -666,6 +666,275 @@ const TopReferralBanner = ({ currentView, setCurrentView }) => {
   );
 };
 
+// Shop Component  
+const Shop = () => {
+  const { user } = useAppContext();
+  const { t } = useLanguage();
+  const [products, setProducts] = useState({});
+  const [inventory, setInventory] = useState(null);
+  const [purchaseHistory, setPurchaseHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [purchasing, setPurchasing] = useState({});
+
+  useEffect(() => {
+    if (user) {
+      fetchShopData();
+    }
+  }, [user]);
+
+  const fetchShopData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch products, inventory, and purchase history
+      const [productsRes, inventoryRes, historyRes] = await Promise.all([
+        axios.get(`${API}/shop/products`),
+        axios.get(`${API}/users/${user.id}/inventory`),
+        axios.get(`${API}/users/${user.id}/purchases`)
+      ]);
+      
+      setProducts(productsRes.data);
+      setInventory(inventoryRes.data);
+      setPurchaseHistory(historyRes.data);
+    } catch (error) {
+      console.error('Error fetching shop data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const purchaseProduct = async (productId) => {
+    if (purchasing[productId]) return;
+    
+    setPurchasing(prev => ({ ...prev, [productId]: true }));
+    
+    try {
+      const response = await axios.post(`${API}/shop/purchase`, {
+        product_id: productId,
+        user_id: user.id,
+        origin_url: window.location.origin
+      });
+      
+      // For now, simulate successful purchase
+      // In real implementation, you'd integrate Stripe Elements here
+      setTimeout(async () => {
+        try {
+          const confirmResponse = await axios.post(`${API}/shop/confirm-purchase`, {
+            purchase_id: response.data.purchase_id,
+            payment_intent_id: response.data.client_secret
+          });
+          
+          alert(`✅ Purchase successful! ${confirmResponse.data.message}`);
+          fetchShopData(); // Refresh data
+        } catch (error) {
+          console.error('Error confirming purchase:', error);
+          alert('❌ Purchase confirmation failed');
+        }
+        
+        setPurchasing(prev => ({ ...prev, [productId]: false }));
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error purchasing product:', error);
+      alert('❌ Purchase failed');
+      setPurchasing(prev => ({ ...prev, [productId]: false }));
+    }
+  };
+
+  const formatPrice = (amount) => `€${amount}`;
+
+  const hasProduct = (productId) => {
+    if (!inventory) return false;
+    
+    const product = products[productId];
+    if (!product) return false;
+    
+    if (product.reward.themes) {
+      return product.reward.themes.some(theme => inventory.themes.includes(theme));
+    }
+    if (product.reward.sounds) {
+      return product.reward.sounds.some(sound => inventory.sounds.includes(sound));
+    }
+    
+    return false;
+  };
+
+  const getProductsByCategory = (category) => {
+    return Object.entries(products).filter(([_, product]) => product.category === category);
+  };
+
+  if (loading) {
+    return (
+      <div className="shop">
+        <div className="loading">Loading shop...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="shop">
+      <div className="shop-header">
+        <h1>🛍️ FocusFlow Shop</h1>
+        <p>Power-ups and personalizations to enhance your productivity journey</p>
+        
+        {inventory && (
+          <div className="user-inventory-summary">
+            <div className="inventory-item">
+              <span className="inventory-icon">🎨</span>
+              <span>{inventory.themes.length} Themes</span>
+            </div>
+            <div className="inventory-item">
+              <span className="inventory-icon">🎵</span>
+              <span>{inventory.sounds.length} Sound Packs</span>
+            </div>
+            <div className="inventory-item">
+              <span className="inventory-icon">🚀</span>
+              <span>{Object.values(inventory.powerups).reduce((a, b) => a + b, 0)} Power-ups</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="shop-categories">
+        {/* Progression Items */}
+        <div className="category-section">
+          <h2 className="category-title">
+            <span className="category-icon">⚡</span>
+            Progression Boosts
+          </h2>
+          <div className="products-grid">
+            {getProductsByCategory('progression').map(([productId, product]) => (
+              <div key={productId} className="product-card">
+                <div className="product-icon">{product.icon}</div>
+                <div className="product-info">
+                  <h3>{product.name}</h3>
+                  <p>{product.description}</p>
+                  <div className="product-price">{formatPrice(product.amount)}</div>
+                </div>
+                <button
+                  className={`purchase-btn ${purchasing[productId] ? 'purchasing' : ''}`}
+                  onClick={() => purchaseProduct(productId)}
+                  disabled={purchasing[productId]}
+                >
+                  {purchasing[productId] ? 'Processing...' : 'Buy Now'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Customization Items */}
+        <div className="category-section">
+          <h2 className="category-title">
+            <span className="category-icon">🎨</span>
+            Themes & Customization
+          </h2>
+          <div className="products-grid">
+            {getProductsByCategory('customization').map(([productId, product]) => (
+              <div key={productId} className={`product-card ${hasProduct(productId) ? 'owned' : ''}`}>
+                <div className="product-icon">{product.icon}</div>
+                <div className="product-info">
+                  <h3>{product.name}</h3>
+                  <p>{product.description}</p>
+                  <div className="product-price">{formatPrice(product.amount)}</div>
+                </div>
+                {hasProduct(productId) ? (
+                  <div className="owned-badge">✅ Owned</div>
+                ) : (
+                  <button
+                    className={`purchase-btn ${purchasing[productId] ? 'purchasing' : ''}`}
+                    onClick={() => purchaseProduct(productId)}
+                    disabled={purchasing[productId]}
+                  >
+                    {purchasing[productId] ? 'Processing...' : 'Buy Now'}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Protection & Enhancement */}
+        <div className="category-section">
+          <h2 className="category-title">
+            <span className="category-icon">🛡️</span>
+            Protection & Enhancements
+          </h2>
+          <div className="products-grid">
+            {getProductsByCategory('protection').concat(getProductsByCategory('enhancement')).map(([productId, product]) => (
+              <div key={productId} className="product-card">
+                <div className="product-icon">{product.icon}</div>
+                <div className="product-info">
+                  <h3>{product.name}</h3>
+                  <p>{product.description}</p>
+                  <div className="product-price">{formatPrice(product.amount)}</div>
+                </div>
+                <button
+                  className={`purchase-btn ${purchasing[productId] ? 'purchasing' : ''}`}
+                  onClick={() => purchaseProduct(productId)}
+                  disabled={purchasing[productId]}
+                >
+                  {purchasing[productId] ? 'Processing...' : 'Buy Now'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Audio & Achievement */}
+        <div className="category-section">
+          <h2 className="category-title">
+            <span className="category-icon">🏆</span>
+            Audio & Achievements
+          </h2>
+          <div className="products-grid">
+            {getProductsByCategory('audio').concat(getProductsByCategory('achievement')).map(([productId, product]) => (
+              <div key={productId} className={`product-card ${hasProduct(productId) ? 'owned' : ''}`}>
+                <div className="product-icon">{product.icon}</div>
+                <div className="product-info">
+                  <h3>{product.name}</h3>
+                  <p>{product.description}</p>
+                  <div className="product-price">{formatPrice(product.amount)}</div>
+                </div>
+                {hasProduct(productId) ? (
+                  <div className="owned-badge">✅ Owned</div>
+                ) : (
+                  <button
+                    className={`purchase-btn ${purchasing[productId] ? 'purchasing' : ''}`}
+                    onClick={() => purchaseProduct(productId)}
+                    disabled={purchasing[productId]}
+                  >
+                    {purchasing[productId] ? 'Processing...' : 'Buy Now'}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Purchase History */}
+      {purchaseHistory.length > 0 && (
+        <div className="purchase-history">
+          <h2>Recent Purchases</h2>
+          <div className="history-list">
+            {purchaseHistory.slice(0, 5).map((purchase) => (
+              <div key={purchase.id} className="history-item">
+                <span className="history-icon">{purchase.product_icon}</span>
+                <span className="history-name">{purchase.product_name}</span>
+                <span className="history-amount">€{purchase.amount}</span>
+                <span className={`history-status ${purchase.status}`}>
+                  {purchase.applied ? '✅ Applied' : purchase.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Referral Dashboard Component
 const ReferralDashboard = () => {
   const { user } = useAppContext();
