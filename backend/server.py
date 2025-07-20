@@ -1081,6 +1081,15 @@ async def get_referral_stats(user_id: str):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    # Ensure user has a referral code - generate one if missing
+    if not user.get("referral_code"):
+        referral_code = generate_referral_code(user["id"], user["email"])
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"referral_code": referral_code}}
+        )
+        user["referral_code"] = referral_code
+    
     # Get referral counts
     total_referrals = await db.referrals.count_documents({"referrer_user_id": user_id})
     completed_referrals = await db.referrals.count_documents({
@@ -1095,7 +1104,7 @@ async def get_referral_stats(user_id: str):
     total_earned = sum(c["amount"] for c in commissions if c["status"] == CommissionStatus.paid)
     pending_commission = sum(c["amount"] for c in commissions if c["status"] == CommissionStatus.pending)
     
-    # Get available withdrawals
+    # Get available withdrawals (balance available for withdrawal)
     withdrawals = await db.withdrawals.find({
         "user_id": user_id, 
         "status": "available_for_withdrawal"
@@ -1110,6 +1119,7 @@ async def get_referral_stats(user_id: str):
         "completed_referrals": completed_referrals,
         "total_commission_earned": total_earned,
         "pending_commission": pending_commission,
+        "available_balance": total_earned,  # Total available balance (same as total_earned for simplicity)
         "available_for_withdrawal": available_for_withdrawal,
         "referral_link": f"https://focusflow.app?ref={user['referral_code']}",
         "earnings_breakdown": {
