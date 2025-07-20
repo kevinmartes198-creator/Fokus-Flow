@@ -1994,7 +1994,7 @@ const SinglePageDashboard = () => {
         <StatsCard title={t('todayTasks')} value={today_stats.tasks_completed} className="stats-card-tasks" />
         <StatsCard title={t('focusSessions')} value={today_stats.focus_sessions_completed} className="stats-card-focus" />
         <StatsCard title={t('focusTime')} value={`${today_stats.total_focus_time}m`} className="stats-card-time" />
-        <StatsCard title="💰 Verdient" value={`$${referralStats.total_commission_earned.toFixed(2)}`} className="stats-card-earnings" />
+        <StatsCard title={t('currentStreak')} value={`${user.current_streak} ${t('days')}`} className="stats-card-streak" />
       </div>
 
       {/* Main Content Grid */}
