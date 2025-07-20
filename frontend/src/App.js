@@ -1515,7 +1515,7 @@ const PomodoroSession = () => {
       </div>
 
       {/* Premium Custom Timers Section */}
-      {user?.subscription_tier === 'premium' && (
+      {isPremiumUser(user?.subscription_tier) && (
         <div className="premium-timers-section">
           <div className="section-header">
             <h4>Custom Timers</h4>
