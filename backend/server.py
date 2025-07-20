@@ -1004,7 +1004,7 @@ async def create_subscription_checkout(request: SubscriptionRequest):
             "session_id": session.session_id,
             "referral_discount": 0,  # Could add discount for referrals in future
             "commission_info": {
-                "referrer_earns": 5.00 if request.referral_code else 0,
+                "referrer_earns": package["commission_amount"] if request.referral_code else 0,
                 "referral_code_used": request.referral_code
             }
         }
