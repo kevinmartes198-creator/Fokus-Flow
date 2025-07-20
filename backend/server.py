@@ -1143,6 +1143,147 @@ async def get_subscription_packages():
     """Get available subscription packages"""
     return SUBSCRIPTION_PACKAGES
 
+@app.get("/api/shop/products")
+async def get_in_app_products():
+    """Get available in-app purchase products"""
+    return IN_APP_PRODUCTS
+
+@app.get("/api/users/{user_id}/inventory")
+async def get_user_inventory_endpoint(user_id: str):
+    """Get user's inventory (unlocked content)"""
+    inventory = await get_user_inventory(user_id)
+    return {
+        "user_id": user_id,
+        "themes": inventory.themes,
+        "sounds": inventory.sounds,
+        "powerups": inventory.powerups,
+        "streak_protection_until": inventory.streak_protection_until,
+        "instant_achievements_used": inventory.instant_achievements_used
+    }
+
+@app.post("/api/shop/purchase")
+async def create_in_app_purchase(request: dict):
+    """Create in-app purchase"""
+    product_id = request.get("product_id")
+    user_id = request.get("user_id") 
+    origin_url = request.get("origin_url", "https://focusflow.app")
+    
+    if not product_id or not user_id:
+        raise HTTPException(status_code=400, detail="Missing product_id or user_id")
+    
+    if product_id not in IN_APP_PRODUCTS:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    product = IN_APP_PRODUCTS[product_id]
+    
+    try:
+        # Create Stripe payment intent for small purchase
+        intent = stripe.PaymentIntent.create(
+            amount=int(product["amount"] * 100),  # Convert to cents
+            currency=product["currency"],
+            metadata={
+                "type": "in_app_purchase",
+                "product_id": product_id,
+                "user_id": user_id,
+                "product_name": product["name"]
+            }
+        )
+        
+        # Store purchase record
+        purchase = InAppPurchase(
+            user_id=user_id,
+            product_id=product_id,
+            amount=product["amount"],
+            currency=product["currency"],
+            stripe_payment_intent_id=intent.id,
+            status="pending"
+        )
+        
+        await db.in_app_purchases.insert_one(purchase.dict())
+        
+        return {
+            "client_secret": intent.client_secret,
+            "purchase_id": purchase.id,
+            "product": {
+                "name": product["name"],
+                "description": product["description"], 
+                "amount": product["amount"],
+                "currency": product["currency"],
+                "icon": product["icon"]
+            }
+        }
+        
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=f"Payment error: {str(e)}")
+
+@app.post("/api/shop/confirm-purchase")
+async def confirm_in_app_purchase(request: dict):
+    """Confirm and apply in-app purchase after payment"""
+    purchase_id = request.get("purchase_id")
+    payment_intent_id = request.get("payment_intent_id")
+    
+    if not purchase_id or not payment_intent_id:
+        raise HTTPException(status_code=400, detail="Missing purchase_id or payment_intent_id")
+    
+    # Find the purchase
+    purchase = await db.in_app_purchases.find_one({"id": purchase_id})
+    if not purchase:
+        raise HTTPException(status_code=404, detail="Purchase not found")
+    
+    # Verify with Stripe
+    try:
+        intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+        
+        if intent.status == "succeeded" and not purchase["applied"]:
+            # Apply the rewards
+            success = await apply_purchase_rewards(purchase["user_id"], purchase["product_id"])
+            
+            if success:
+                # Mark purchase as completed and applied
+                await db.in_app_purchases.update_one(
+                    {"id": purchase_id},
+                    {
+                        "$set": {
+                            "status": "completed",
+                            "applied": True,
+                            "completed_at": datetime.utcnow()
+                        }
+                    }
+                )
+                
+                return {
+                    "status": "success",
+                    "message": f"Purchase applied! You received: {IN_APP_PRODUCTS[purchase['product_id']]['description']}",
+                    "product": IN_APP_PRODUCTS[purchase["product_id"]]
+                }
+        
+        return {"status": "pending", "message": "Payment still processing"}
+        
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=f"Payment verification error: {str(e)}")
+
+@app.get("/api/users/{user_id}/purchases")
+async def get_user_purchases(user_id: str):
+    """Get user's purchase history"""
+    purchases = await db.in_app_purchases.find({"user_id": user_id}).sort("created_at", -1).to_list(50)
+    
+    purchase_history = []
+    for purchase in purchases:
+        product = IN_APP_PRODUCTS.get(purchase["product_id"], {})
+        purchase_history.append({
+            "id": purchase["id"],
+            "product_name": product.get("name", "Unknown Product"),
+            "product_icon": product.get("icon", "🛍️"),
+            "amount": purchase["amount"],
+            "currency": purchase["currency"],
+            "status": purchase["status"],
+            "applied": purchase["applied"],
+            "created_at": purchase["created_at"],
+            "completed_at": purchase.get("completed_at")
+        })
+    
+    return purchase_history
+
 @api_router.post("/subscription/checkout")
 async def create_subscription_checkout(request: SubscriptionRequest):
     """Create Stripe checkout session for subscription with referral tracking"""
