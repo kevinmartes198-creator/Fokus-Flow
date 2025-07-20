@@ -755,6 +755,7 @@ const SubscriptionModal = ({ isOpen, onClose }) => {
 
 const PomodoroSession = () => {
   const { user, updateUserStats } = useAppContext();
+  const { t } = useLanguage();
   const [isActive, setIsActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
   const [sessionType, setSessionType] = useState('focus');
@@ -765,9 +766,9 @@ const PomodoroSession = () => {
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   const sessionTypes = {
-    focus: { duration: 25 * 60, label: 'Focus Time', next: 'short_break' },
-    short_break: { duration: 5 * 60, label: 'Short Break', next: 'focus' },
-    long_break: { duration: 15 * 60, label: 'Long Break', next: 'focus' }
+    focus: { duration: 25 * 60, label: t('focusTime'), next: 'short_break' },
+    short_break: { duration: 5 * 60, label: t('shortBreak'), next: 'focus' },
+    long_break: { duration: 15 * 60, label: t('longBreak'), next: 'focus' }
   };
 
   useEffect(() => {
