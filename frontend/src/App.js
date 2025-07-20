@@ -2419,7 +2419,7 @@ const AppContent = ({ isSubscriptionSuccess, currentView, setCurrentView, loadin
       </nav>
 
       <main className="main-content">
-        {currentView === 'dashboard' && <Dashboard />}
+        {currentView === 'dashboard' && <SinglePageDashboard />}
         {currentView === 'tasks' && <TaskManager />}
         {currentView === 'focus' && <PomodoroSession />}
         {currentView === 'referrals' && <ReferralDashboard />}
