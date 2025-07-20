@@ -853,6 +853,172 @@ async def check_streak_protection(user_id: str) -> bool:
         return datetime.utcnow() < inventory.streak_protection_until
     return False
 
+async def calculate_productivity_score(user_id: str) -> dict:
+    """Calculate comprehensive productivity score"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        return {"score": 0, "level": "beginner", "components": {}}
+    
+    today = datetime.utcnow().date()
+    week_ago = today - timedelta(days=7)
+    
+    # Get weekly stats
+    tasks_completed = await db.tasks.count_documents({
+        "user_id": user_id,
+        "completed": True,
+        "completed_at": {"$gte": week_ago.isoformat()}
+    })
+    
+    focus_sessions = await db.focus_sessions.count_documents({
+        "user_id": user_id,
+        "completed_at": {"$gte": week_ago.isoformat()}
+    })
+    
+    # Calculate component scores
+    components = {}
+    
+    # Task completion (0-100)
+    task_score = min(100, (tasks_completed / 35) * 100)  # 5 tasks/day * 7 days
+    components["task_completion"] = task_score
+    
+    # Focus consistency (0-100)
+    focus_score = min(100, (focus_sessions / 21) * 100)  # 3 sessions/day * 7 days
+    components["focus_consistency"] = focus_score
+    
+    # Streak maintenance (0-100)
+    current_streak = user.get("current_streak", 0)
+    streak_score = min(100, (current_streak / 30) * 100)  # 30 days max
+    components["streak_maintenance"] = streak_score
+    
+    # Goal achievement (simplified for now)
+    goal_score = 50  # Default middle score
+    components["goal_achievement"] = goal_score
+    
+    # Calculate weighted total
+    weights = ANALYTICS_SYSTEM["metrics"]["productivity_score"]["components"]
+    total_score = (
+        task_score * weights["task_completion"]["weight"] +
+        focus_score * weights["focus_consistency"]["weight"] +
+        streak_score * weights["streak_maintenance"]["weight"] +
+        goal_score * weights["goal_achievement"]["weight"]
+    )
+    
+    # Determine level
+    ranges = ANALYTICS_SYSTEM["metrics"]["productivity_score"]["ranges"]
+    level = "beginner"
+    for level_name, range_info in ranges.items():
+        if range_info["min"] <= total_score <= range_info["max"]:
+            level = level_name
+            break
+    
+    return {
+        "score": round(total_score, 1),
+        "level": level,
+        "components": components,
+        "level_info": ranges[level],
+        "calculated_at": datetime.utcnow()
+    }
+
+async def generate_focus_patterns_analysis(user_id: str) -> dict:
+    """Generate detailed focus patterns analysis"""
+    # Get last 30 days of focus sessions
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    sessions = await db.focus_sessions.find({
+        "user_id": user_id,
+        "created_at": {"$gte": thirty_days_ago}
+    }).to_list(None)
+    
+    if not sessions:
+        return {"message": "Not enough data for analysis", "sessions_count": 0}
+    
+    # Time of day analysis
+    hour_productivity = {}
+    session_lengths = []
+    day_of_week_productivity = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+    
+    for session in sessions:
+        created_at = session["created_at"]
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at)
+        
+        hour = created_at.hour
+        weekday = created_at.weekday()
+        duration = session.get("focus_duration", session.get("duration", 25))
+        
+        hour_productivity[hour] = hour_productivity.get(hour, 0) + 1
+        session_lengths.append(duration)
+        day_of_week_productivity[weekday] += 1
+    
+    # Find peak hours
+    peak_hour = max(hour_productivity.items(), key=lambda x: x[1])[0] if hour_productivity else 9
+    
+    # Average session length
+    avg_session_length = sum(session_lengths) / len(session_lengths) if session_lengths else 25
+    
+    # Most productive day
+    most_productive_day = max(day_of_week_productivity.items(), key=lambda x: x[1])[0]
+    day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    
+    return {
+        "sessions_analyzed": len(sessions),
+        "peak_focus_hour": peak_hour,
+        "peak_focus_time": f"{peak_hour:02d}:00",
+        "average_session_length": round(avg_session_length, 1),
+        "most_productive_day": day_names[most_productive_day],
+        "hourly_distribution": hour_productivity,
+        "weekly_distribution": day_of_week_productivity,
+        "recommendations": {
+            "optimal_session_length": round(avg_session_length),
+            "best_focus_window": f"{peak_hour:02d}:00 - {(peak_hour + 2) % 24:02d}:00",
+            "consistency_tip": f"{day_names[most_productive_day]} appears to be your most productive day"
+        }
+    }
+
+async def create_social_share_content(user_id: str, share_type: str, context: dict) -> dict:
+    """Generate social sharing content for achievements"""
+    templates = SOCIAL_SHARING["share_templates"].get(share_type, {})
+    if not templates:
+        return {"error": "Invalid share type"}
+    
+    share_content = {}
+    
+    for platform, template in templates["templates"].items():
+        platform_info = SOCIAL_SHARING["platforms"][platform]
+        hashtags = " ".join(platform_info["hashtags"])
+        
+        # Format template with context
+        formatted_content = template.format(
+            hashtags=hashtags,
+            **context
+        )
+        
+        # Truncate if needed
+        if len(formatted_content) > platform_info["character_limit"]:
+            formatted_content = formatted_content[:platform_info["character_limit"] - 3] + "..."
+        
+        # Generate share URL
+        share_url = ""
+        if platform == "twitter":
+            share_url = f"{platform_info['base_url']}?text={formatted_content}"
+        elif platform == "linkedin":
+            share_url = f"{platform_info['base_url']}?url=https://focusflow.app&title={templates['title']}&summary={formatted_content}"
+        elif platform == "facebook":
+            share_url = f"{platform_info['base_url']}?u=https://focusflow.app&quote={formatted_content}"
+        
+        share_content[platform] = {
+            "content": formatted_content,
+            "url": share_url,
+            "character_count": len(formatted_content),
+            "platform_limit": platform_info["character_limit"],
+            "icon": platform_info["icon"]
+        }
+    
+    return {
+        "share_type": share_type,
+        "title": templates["title"],
+        "platforms": share_content
+    }
+
 async def check_badge_unlocks(user_id: str, user_data: dict = None):
     """Check and award new badges for user"""
     if not user_data:
