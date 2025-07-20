@@ -121,12 +121,14 @@ class DailyChallengesKanbanTester:
         success, user_challenges, status_code = self.make_request("GET", f"/users/{self.test_user_id}/daily-challenges")
         
         if success and status_code == 200:
-            if isinstance(user_challenges, list):
-                self.log_test("User Daily Challenges API", True, f"Retrieved {len(user_challenges)} challenge statuses")
+            # The API returns a dict with "challenges" list inside
+            if isinstance(user_challenges, dict) and "challenges" in user_challenges:
+                challenges_list = user_challenges["challenges"]
+                self.log_test("User Daily Challenges API", True, f"Retrieved {len(challenges_list)} challenge statuses")
                 
                 # Verify user challenge structure
-                if len(user_challenges) > 0:
-                    challenge = user_challenges[0]
+                if len(challenges_list) > 0:
+                    challenge = challenges_list[0]
                     required_fields = ["challenge_id", "name", "description", "current_progress", "goal", "completed"]
                     if all(field in challenge for field in required_fields):
                         self.log_test("User Challenge Structure", True, f"Progress: {challenge['current_progress']}/{challenge['goal']}")
@@ -134,8 +136,15 @@ class DailyChallengesKanbanTester:
                         self.log_test("User Challenge Structure", False, f"Missing fields: {challenge}")
                 else:
                     self.log_test("User Challenge Progress", True, "No progress yet (expected for new user)")
+                
+                # Verify response structure
+                required_response_fields = ["date", "challenges", "completed_today", "total_challenges"]
+                if all(field in user_challenges for field in required_response_fields):
+                    self.log_test("User Challenges Response Structure", True, f"Date: {user_challenges['date']}, Completed: {user_challenges['completed_today']}/{user_challenges['total_challenges']}")
+                else:
+                    self.log_test("User Challenges Response Structure", False, f"Missing response fields: {user_challenges}")
             else:
-                self.log_test("User Daily Challenges API", False, f"Expected list, got: {type(user_challenges)}")
+                self.log_test("User Daily Challenges API", False, f"Expected dict with 'challenges' key, got: {type(user_challenges)}")
         else:
             self.log_test("User Daily Challenges API", False, f"Status: {status_code}, Error: {user_challenges}")
 
