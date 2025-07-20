@@ -1927,6 +1927,68 @@ async def get_badge_progress(user_id: str):
     
     return progress_data
 
+@app.get("/api/gamification/daily-challenges")
+async def get_daily_challenges():
+    """Get available daily challenges"""
+    return DAILY_CHALLENGES
+
+@app.get("/api/users/{user_id}/daily-challenges")
+async def get_user_daily_challenges(user_id: str):
+    """Get user's daily challenge progress"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    today = datetime.utcnow().date()
+    
+    # Get today's challenge progress
+    challenge_progress = await db.user_daily_challenges.find({
+        "user_id": user_id,
+        "date": today.isoformat()
+    }).to_list(None)
+    
+    # Convert to dict for easier access
+    progress_dict = {cp["challenge_id"]: cp for cp in challenge_progress}
+    
+    # Build response with challenge status
+    challenges_status = []
+    
+    for challenge_id, challenge in DAILY_CHALLENGES.items():
+        progress = progress_dict.get(challenge_id, {})
+        current_progress = progress.get("current_progress", 0)
+        completed = progress.get("completed", False)
+        
+        # Calculate current progress based on challenge type
+        if challenge["type"] == "focus_sessions":
+            current_progress = user.get("focus_sessions_completed", 0)  # Today's sessions
+        elif challenge["type"] == "tasks_completed":
+            current_progress = user.get("tasks_completed", 0)  # Today's tasks
+        elif challenge["type"] == "consecutive_days":
+            current_progress = user.get("current_streak", 0)
+        
+        progress_percentage = min(100, (current_progress / challenge["goal"]) * 100) if challenge["goal"] > 0 else 0
+        
+        challenges_status.append({
+            "challenge_id": challenge_id,
+            "name": challenge["name"],
+            "description": challenge["description"],
+            "icon": challenge["icon"],
+            "goal": challenge["goal"],
+            "current_progress": current_progress,
+            "progress_percentage": progress_percentage,
+            "completed": completed,
+            "difficulty": challenge["difficulty"],
+            "reward": challenge["reward"],
+            "unlock_offer": challenge.get("unlock_offer", {}) if completed else None
+        })
+    
+    return {
+        "date": today.isoformat(),
+        "challenges": challenges_status,
+        "completed_today": len([c for c in challenges_status if c["completed"]]),
+        "total_challenges": len(challenges_status)
+    }
+
 @api_router.post("/subscription/checkout")
 async def create_subscription_checkout(request: SubscriptionRequest):
     """Create Stripe checkout session for subscription with referral tracking"""
