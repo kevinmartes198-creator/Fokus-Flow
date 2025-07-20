@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, List
 
 # Configuration
-BASE_URL = "https://e58b693d-988c-497c-b9ba-b7a1ee2fb168.preview.emergentagent.com/api"
+BASE_URL = "https://cc589ab3-10bb-420b-b43d-153aab91564f.preview.emergentagent.com/api"
 HEADERS = {"Content-Type": "application/json"}
 
 class PaymentSystemTester:
