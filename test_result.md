@@ -394,6 +394,18 @@ frontend:
         agent: "main"
         comment: "Added comprehensive premium styling, modals, subscription pages, and responsive design"
 
+  - task: "UI Layout Consolidation"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented top referral banner with prominent $5 earnings display, moved language switcher to top banner, removed duplicate referral displays from dashboard, added multilingual support for banner, created responsive layout design"
+
 metadata:
   created_by: "main_agent"
   version: "2.0"
