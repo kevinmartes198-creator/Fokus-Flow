@@ -348,6 +348,120 @@ const translations = {
     edit: "Modifier",
     save: "Sauvegarder",
     close: "Fermer"
+  },
+  de: {
+    // Navigation
+    dashboard: "Dashboard",
+    tasks: "Aufgaben",
+    focus: "Fokus",
+    
+    // Dashboard
+    welcomeBack: "Willkommen zurück",
+    todayTheme: "Heutiges Thema",
+    productivityTheme: "Produktivitäts-Thema",
+    level: "Level",
+    xpToNext: "XP bis Level",
+    todayTasks: "Heutige Aufgaben",
+    focusSessions: "Fokus-Sitzungen",
+    focusTime: "Fokus-Zeit",
+    currentStreak: "Aktuelle Serie",
+    days: "Tage",
+    yourPlan: "Ihr Plan",
+    recentAchievements: "Neueste Erfolge",
+    
+    // Premium Features
+    customTimers: "Benutzerdefinierte Timer",
+    adaptiveThemes: "Adaptive Designs",
+    premiumSounds: "Premium-Klänge",
+    xpBonus: "XP-Bonus",
+    enabled: "Aktiviert",
+    premiumOnly: "Nur Premium",
+    standardXp: "Standard XP",
+    upgradeToPremium: "Auf Premium upgraden - Alle Funktionen für 9,99€/Monat freischalten",
+    
+    // Tasks
+    whatTodo: "Was muss erledigt werden?",
+    addDescription: "Beschreibung hinzufügen (optional)",
+    addTask: "Aufgabe hinzufügen",
+    addTaskXp: "Aufgabe hinzufügen (+{xp} XP)",
+    premiumBonus: "20% Bonus!",
+    pendingTasks: "Ausstehende Aufgaben",
+    completedTasks: "Erledigte Aufgaben",
+    moreTasks: "+{count} weitere erledigte Aufgaben",
+    noTasksYet: "Noch keine Aufgaben!",
+    createFirstTask: "Erstellen Sie Ihre erste Aufgabe, um Ihre Produktivitätsreise zu beginnen.",
+    
+    // Timer
+    focusTime: "Fokus-Zeit",
+    shortBreak: "Kurze Pause",
+    longBreak: "Lange Pause",
+    paused: "Pausiert",
+    start: "Starten",
+    resume: "Fortsetzen",
+    pause: "Pause",
+    reset: "Zurücksetzen",
+    
+    // Custom Timers
+    customTimersTitle: "Benutzerdefinierte Timer",
+    createTimer: "Timer erstellen",
+    useTimer: "Verwenden",
+    deleteTimer: "Löschen",
+    usingTimer: "Verwende",
+    useDefaultTimer: "Standard-Timer verwenden",
+    
+    // Premium Upsell
+    wantCustomTimers: "Möchten Sie benutzerdefinierte Timer-Längen?",
+    unlockFeatures: "Schalten Sie 90/15 Deep-Work-Sitzungen, Produktivitäts-Designs und 20% XP-Bonus mit Premium frei!",
+    upgradeBtn: "Auf Premium upgraden - 9,99€/Monat",
+    
+    // Subscription Modal
+    upgradeToPremium: "Auf Premium upgraden",
+    premiumFeaturesInclude: "Premium-Funktionen umfassen:",
+    customTimerLengths: "Benutzerdefinierte Timer-Längen (90/15 Min Deep-Work-Sitzungen)",
+    productivityBasedThemes: "Produktivitätsbasierte adaptive Designs",
+    premiumNotifications: "Premium-Klang-Benachrichtigungen",
+    xpBonusFeature: "20% XP-Bonus bei allen Aktivitäten",
+    advancedAnalytics: "Erweiterte Analysen und Einblicke",
+    premiumMonthly: "Premium Monatlich",
+    subscribeNow: "Jetzt abonnieren",
+    processing: "Wird verarbeitet...",
+    premiumNote: "✨ Starten Sie noch heute Ihre Premium-Reise und entfesseln Sie Ihr volles Produktivitätspotential!",
+    
+    // Custom Timer Modal
+    editTimer: "Timer bearbeiten",
+    createCustomTimer: "Benutzerdefinierten Timer erstellen",
+    timerName: "Timer-Name",
+    timerNamePlaceholder: "z.B. Deep-Work-Sitzung",
+    focusTimeMin: "Fokus-Zeit (Minuten)",
+    shortBreakMin: "Kurze Pause (Minuten)",
+    longBreakMin: "Lange Pause (Minuten)",
+    cancel: "Abbrechen",
+    updateTimer: "Timer aktualisieren",
+    createTimerBtn: "Timer erstellen",
+    
+    // Payment Success
+    processingPayment: "Ihre Zahlung wird verarbeitet...",
+    pleaseWait: "Bitte warten Sie, während wir Ihr Abonnement bestätigen.",
+    welcomeToPremium: "Willkommen bei Premium!",
+    subscriptionActivated: "Ihr Abonnement wurde erfolgreich aktiviert.",
+    amount: "Betrag",
+    date: "Datum",
+    continueToApp: "Zur App fortfahren",
+    paymentFailed: "Zahlung fehlgeschlagen",
+    paymentIssue: "Es gab ein Problem bei der Verarbeitung Ihrer Zahlung. Bitte versuchen Sie es erneut.",
+    backToApp: "Zurück zur App",
+    paymentTimeout: "Zahlungsstatus-Überprüfung abgelaufen",
+    stillProcessing: "Wir verarbeiten Ihre Zahlung noch. Bitte überprüfen Sie Ihre E-Mail zur Bestätigung.",
+    somethingWrong: "Etwas ist schiefgelaufen",
+    contactSupport: "Wir haben einen Fehler bei der Überprüfung Ihres Zahlungsstatus festgestellt. Bitte kontaktieren Sie den Support.",
+    
+    // Common
+    loading: "Laden...",
+    loadingApp: "FocusFlow wird geladen...",
+    delete: "Löschen",
+    edit: "Bearbeiten",
+    save: "Speichern",
+    close: "Schließen"
   }
 };
 
