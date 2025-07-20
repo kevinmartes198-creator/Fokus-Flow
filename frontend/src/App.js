@@ -2456,6 +2456,15 @@ const AppContent = ({ isSubscriptionSuccess, currentView, setCurrentView, loadin
             {t('focus')}
           </button>
           <button
+            className={`nav-item ${currentView === 'shop' ? 'nav-item-active' : 'nav-item-inactive'}`}
+            onClick={() => setCurrentView('shop')}
+          >
+            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 2L3 7v11a2 2 0 002 2h10a2 2 0 002-2V7l-7-5zM8 15a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+            </svg>
+            🛍️ Shop
+          </button>
+          <button
             className={`nav-item ${currentView === 'referrals' ? 'nav-item-active' : 'nav-item-inactive'}`}
             onClick={() => setCurrentView('referrals')}
           >
