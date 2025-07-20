@@ -1308,10 +1308,11 @@ const TaskManager = () => {
 
 const Dashboard = () => {
   const { user, dashboardData, theme } = useAppContext();
+  const { t } = useLanguage();
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   if (!dashboardData) {
-    return <div className="loading">Loading dashboard...</div>;
+    return <div className="loading">{t('loading')} dashboard...</div>;
   }
 
   const { today_stats, level_progress, recent_achievements, premium_features } = dashboardData;
@@ -1320,17 +1321,17 @@ const Dashboard = () => {
     <div className="dashboard">
       <div className="dashboard-header">
         <div className="user-info">
-          <h1 className="welcome-text">Welcome back, {user.name}!</h1>
+          <h1 className="welcome-text">{t('welcomeBack')}, {user.name}!</h1>
           <div className={`theme-badge theme-${theme.primary}`}>
             {premium_features.productivity_themes ? 
-              `Productivity Theme: ${theme.name}` : 
-              `Today's Theme: ${theme.name}`}
+              `${t('productivityTheme')}: ${theme.name}` : 
+              `${t('todayTheme')}: ${theme.name}`}
           </div>
         </div>
 
         <div className="level-card">
           <div className="level-info">
-            <div className="level-number">Level {user.level}</div>
+            <div className="level-number">{t('level')} {user.level}</div>
             <div className="level-progress">
               <div 
                 className="level-progress-bar"
@@ -1338,7 +1339,7 @@ const Dashboard = () => {
               ></div>
             </div>
             <div className="level-text">
-              {level_progress.xp_to_next_level} XP to Level {user.level + 1}
+              {level_progress.xp_to_next_level} {t('xpToNext')} {user.level + 1}
             </div>
           </div>
           <div className="total-xp">{user.total_xp} XP</div>
@@ -1347,62 +1348,62 @@ const Dashboard = () => {
 
       <div className="stats-grid">
         <StatsCard
-          title="Today's Tasks"
+          title={t('todayTasks')}
           value={today_stats.tasks_completed}
           className="stats-card-tasks"
         />
         <StatsCard
-          title="Focus Sessions"
+          title={t('focusSessions')}
           value={today_stats.focus_sessions_completed}
           className="stats-card-focus"
         />
         <StatsCard
-          title="Focus Time"
+          title={t('focusTime')}
           value={`${today_stats.total_focus_time}m`}
           className="stats-card-time"
         />
         <StatsCard
-          title="Current Streak"
+          title={t('currentStreak')}
           value={user.current_streak}
-          subtitle="days"
+          subtitle={t('days')}
           className="stats-card-streak"
         />
       </div>
 
       {/* Premium Features Status */}
       <div className="premium-status-section">
-        <h3 className="section-title">Your Plan: {user.subscription_tier.toUpperCase()}</h3>
+        <h3 className="section-title">{t('yourPlan')}: {user.subscription_tier.toUpperCase()}</h3>
         <div className="premium-features-grid">
           <div className={`feature-card ${premium_features.custom_timers ? 'active' : 'locked'}`}>
             <div className="feature-icon">
               {premium_features.custom_timers ? '✅' : '🔒'}
             </div>
-            <h4>Custom Timers</h4>
-            <p>{premium_features.custom_timers ? 'Enabled' : 'Premium only'}</p>
+            <h4>{t('customTimers')}</h4>
+            <p>{premium_features.custom_timers ? t('enabled') : t('premiumOnly')}</p>
           </div>
           
           <div className={`feature-card ${premium_features.productivity_themes ? 'active' : 'locked'}`}>
             <div className="feature-icon">
               {premium_features.productivity_themes ? '✅' : '🔒'}
             </div>
-            <h4>Adaptive Themes</h4>
-            <p>{premium_features.productivity_themes ? 'Enabled' : 'Premium only'}</p>
+            <h4>{t('adaptiveThemes')}</h4>
+            <p>{premium_features.productivity_themes ? t('enabled') : t('premiumOnly')}</p>
           </div>
           
           <div className={`feature-card ${premium_features.premium_sounds ? 'active' : 'locked'}`}>
             <div className="feature-icon">
               {premium_features.premium_sounds ? '✅' : '🔒'}
             </div>
-            <h4>Premium Sounds</h4>
-            <p>{premium_features.premium_sounds ? 'Enabled' : 'Premium only'}</p>
+            <h4>{t('premiumSounds')}</h4>
+            <p>{premium_features.premium_sounds ? t('enabled') : t('premiumOnly')}</p>
           </div>
           
           <div className="feature-card premium-xp">
             <div className="feature-icon">
               {user.subscription_tier === 'premium' ? '⭐' : '💰'}
             </div>
-            <h4>XP Bonus</h4>
-            <p>{user.subscription_tier === 'premium' ? '+20% XP' : 'Standard XP'}</p>
+            <h4>{t('xpBonus')}</h4>
+            <p>{user.subscription_tier === 'premium' ? '+20% XP' : t('standardXp')}</p>
           </div>
         </div>
         
@@ -1411,14 +1412,14 @@ const Dashboard = () => {
             className="upgrade-banner-btn"
             onClick={() => setShowSubscriptionModal(true)}
           >
-            🚀 Upgrade to Premium - Unlock all features for $9.99/month
+            🚀 {t('upgradeToPremium')}
           </button>
         )}
       </div>
 
       {recent_achievements.length > 0 && (
         <div className="achievements-section">
-          <h3 className="section-title">Recent Achievements</h3>
+          <h3 className="section-title">{t('recentAchievements')}</h3>
           <div className="achievements-list">
             {recent_achievements.map(achievement => (
               <div key={achievement.id} className="achievement-card">
