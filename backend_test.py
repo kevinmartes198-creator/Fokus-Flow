@@ -1434,12 +1434,12 @@ class FocusFlowTester:
         self.test_premium_achievements()
         self.test_productivity_adaptive_themes()
         
-        # NEW REFERRAL COMMISSION SYSTEM TEST
+        # CRITICAL END-TO-END REFERRAL COMMISSION SYSTEM TEST
         print("\n" + "🎯" * 20)
-        print("NEW REFERRAL COMMISSION SYSTEM TESTING")
+        print("CRITICAL END-TO-END REFERRAL COMMISSION SYSTEM TEST")
         print("🎯" * 20)
         
-        self.test_referral_system_comprehensive()
+        self.test_critical_end_to_end_referral_flow()
         
         # Summary
         print("\n" + "=" * 60)
