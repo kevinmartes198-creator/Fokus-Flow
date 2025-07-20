@@ -1632,6 +1632,14 @@ body {
   color: white;
 }
 
+.share-btn.instagram {
+  background: linear-gradient(135deg, #f58529, #dd2a7b, #8134af, #515bd4);
+}
+
+.share-btn.tiktok {
+  background: #000000;
+}
+
 .share-btn.twitter {
   background: #1da1f2;
 }
