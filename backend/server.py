@@ -595,6 +595,51 @@ async def check_subscription_status(user_id: str):
     
     return False
 
+def is_premium_user(user_tier: str) -> bool:
+    """Check if user has any premium tier access"""
+    return user_tier in ["premium", "premium_monthly", "premium_yearly", "premium_lifetime"]
+
+def get_premium_features_for_tier(user_tier: str, premium_badge: str = None) -> dict:
+    """Get premium features available for specific tier"""
+    if not is_premium_user(user_tier):
+        return {
+            "custom_timers": False,
+            "productivity_themes": False, 
+            "premium_sounds": False,
+            "xp_bonus": False,
+            "cloud_backup": False,
+            "premium_achievements": False
+        }
+    
+    # Legacy premium users get special treatment
+    if user_tier == "premium":
+        return {
+            "custom_timers": True,
+            "productivity_themes": True,
+            "premium_sounds": True, 
+            "xp_bonus": True,
+            "cloud_backup": True,
+            "premium_achievements": True,
+            "legacy_user": True,  # Special flag for legacy users
+            "badge_type": "legacy_supporter"
+        }
+    
+    # New tier users
+    features = {
+        "custom_timers": True,
+        "productivity_themes": True,
+        "premium_sounds": True,
+        "xp_bonus": True, 
+        "cloud_backup": True,
+        "premium_achievements": True,
+        "legacy_user": False
+    }
+    
+    if premium_badge:
+        features["badge_type"] = premium_badge
+        
+    return features
+
 # Routes
 @api_router.get("/")
 async def root():
