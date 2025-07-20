@@ -2134,7 +2134,7 @@ const SinglePageDashboard = () => {
             </div>
             <button type="submit" className="add-task-btn-compact">
               {t('addTaskXp', { xp: xpAmount })}
-              {user?.subscription_tier === 'premium' && <span className="premium-bonus">+20%</span>}
+              {isPremiumUser(user?.subscription_tier) && <span className="premium-bonus">+20%</span>}
             </button>
           </form>
 
