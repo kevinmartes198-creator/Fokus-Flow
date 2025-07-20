@@ -555,6 +555,80 @@ const LanguageSwitcher = () => {
   );
 };
 
+// Top Referral Banner Component  
+const TopReferralBanner = ({ currentView, setCurrentView }) => {
+  const { user } = useAppContext();
+  const { t } = useLanguage();
+  const [referralStats, setReferralStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      fetchReferralData();
+    }
+  }, [user]);
+
+  const fetchReferralData = async () => {
+    try {
+      const response = await axios.get(`${API}/users/${user.id}/referral-stats`);
+      setReferralStats(response.data);
+    } catch (error) {
+      console.error('Error fetching referral data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyReferralLink = () => {
+    if (referralStats?.referral_link) {
+      navigator.clipboard.writeText(referralStats.referral_link);
+      alert('Referral link copied to clipboard!');
+    }
+  };
+
+  if (loading || !referralStats) {
+    return null;
+  }
+
+  return (
+    <div className="top-banner-referral">
+      <div className="banner-content">
+        <div className="banner-left">
+          <div className="earnings-display">
+            <span className="earnings-icon">💰</span>
+            <span className="earnings-text">
+              <strong>${referralStats.total_commission_earned.toFixed(2)}</strong> earned
+            </span>
+            <span className="divider">|</span>
+            <span className="available-text">
+              ${referralStats.available_balance.toFixed(2)} available
+            </span>
+          </div>
+        </div>
+        
+        <div className="banner-center">
+          <span className="banner-message">
+            Earn <strong>$5</strong> per Premium referral! Share: <strong>{referralStats.referral_code}</strong>
+          </span>
+        </div>
+        
+        <div className="banner-right">
+          <LanguageSwitcher />
+          <button className="copy-link-btn" onClick={copyReferralLink}>
+            Copy Link
+          </button>
+          <button 
+            className="view-referrals-btn"
+            onClick={() => setCurrentView('referrals')}
+          >
+            View Details
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Referral Dashboard Component
 const ReferralDashboard = () => {
   const { user } = useAppContext();
