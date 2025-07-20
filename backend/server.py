@@ -956,11 +956,20 @@ async def get_subscription_packages():
 
 @api_router.post("/subscription/checkout")
 async def create_subscription_checkout(request: SubscriptionRequest):
-    """Create Stripe checkout session for subscription"""
+    """Create Stripe checkout session for subscription with referral tracking"""
     if request.package_id not in SUBSCRIPTION_PACKAGES:
         raise HTTPException(status_code=400, detail="Invalid package selected")
     
     package = SUBSCRIPTION_PACKAGES[request.package_id]
+    
+    # Validate referral code if provided
+    referrer_info = None
+    if request.referral_code:
+        referrer = await db.users.find_one({"referral_code": request.referral_code})
+        if referrer:
+            referrer_info = {"id": referrer["id"], "code": request.referral_code}
+        else:
+            logging.warning(f"Invalid referral code in checkout: {request.referral_code}")
     
     # Create webhook URL
     webhook_url = f"{request.origin_url}/api/webhook/stripe"
@@ -970,24 +979,28 @@ async def create_subscription_checkout(request: SubscriptionRequest):
     success_url = f"{request.origin_url}/subscription/success?session_id={{CHECKOUT_SESSION_ID}}"
     cancel_url = f"{request.origin_url}/subscription/cancel"
     
-    # Create checkout request
+    # Create checkout request with referral metadata
+    metadata = {
+        "package_id": request.package_id,
+        "package_name": package["name"]
+    }
+    
+    if referrer_info:
+        metadata["referral_code"] = referrer_info["code"]
+        metadata["referrer_id"] = referrer_info["id"]
+    
     checkout_request = CheckoutSessionRequest(
         amount=package["amount"],
         currency=package["currency"],
         success_url=success_url,
         cancel_url=cancel_url,
-        metadata={
-            "package_id": request.package_id,
-            "package_name": package["name"]
-        }
+        metadata=metadata
     )
     
     try:
         session = await stripe_checkout.create_checkout_session(checkout_request)
         
-        # Create payment transaction record
-        # Note: We can't get user_id from current session, so we'll use a placeholder
-        # In a real app, you'd get this from authentication
+        # Create payment transaction record with referral info
         payment_transaction = PaymentTransaction(
             user_id="demo_user",  # This would come from authentication
             session_id=session.session_id,
@@ -995,14 +1008,20 @@ async def create_subscription_checkout(request: SubscriptionRequest):
             amount=package["amount"],
             currency=package["currency"],
             payment_status=PaymentStatus.pending,
-            metadata=checkout_request.metadata
+            referral_code_used=request.referral_code,
+            metadata=metadata
         )
         
         await db.payment_transactions.insert_one(payment_transaction.dict())
         
         return {
             "checkout_url": session.url,
-            "session_id": session.session_id
+            "session_id": session.session_id,
+            "referral_discount": 0,  # Could add discount for referrals in future
+            "commission_info": {
+                "referrer_earns": 5.00 if request.referral_code else 0,
+                "referral_code_used": request.referral_code
+            }
         }
         
     except Exception as e:
