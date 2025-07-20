@@ -3390,3 +3390,250 @@ body {
     justify-content: center;
   }
 }
+
+/* Projects & Kanban Board Styles */
+.projects-view {
+  max-width: 100%;
+}
+
+.project-card {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.project-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.kanban-board {
+  min-height: 600px;
+}
+
+.kanban-column {
+  min-height: 500px;
+  background: #f8fafc;
+  border: 2px dashed transparent;
+  transition: all 0.2s ease;
+}
+
+.kanban-column:hover {
+  border-color: #e2e8f0;
+  background: #f1f5f9;
+}
+
+.kanban-task {
+  transition: all 0.2s ease;
+  border-left: 4px solid transparent;
+}
+
+.kanban-task:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.kanban-task.priority-high {
+  border-left-color: #ef4444;
+}
+
+.kanban-task.priority-medium {
+  border-left-color: #f59e0b;
+}
+
+.kanban-task.priority-low {
+  border-left-color: #10b981;
+}
+
+.priority-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.priority-badge.high {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.priority-badge.medium {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.priority-badge.low {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  items-center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Navigation Styles */
+.nav-items {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.nav-item-active {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.3);
+}
+
+.nav-item-inactive {
+  color: #6b7280;
+}
+
+.nav-item-inactive:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* Top Banner Styles */
+.top-banner {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 12px 0;
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.banner-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-weight: 600;
+}
+
+.banner-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.language-select {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 14px;
+}
+
+/* Dashboard Styles */
+.dashboard-view {
+  max-width: 100%;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.feature-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.2s ease;
+}
+
+.feature-card:hover {
+  border-color: #8b5cf6;
+  background: #faf5ff;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .nav-items {
+    gap: 4px;
+  }
+  
+  .nav-item {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+  
+  .banner-content {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+  
+  .banner-left {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .kanban-board {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .modal-content {
+    margin: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .nav-item span:not(.emoji) {
+    display: none;
+  }
+  
+  .stat-card {
+    padding: 16px;
+  }
+}
