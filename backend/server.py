@@ -771,12 +771,10 @@ async def get_user_dashboard(user_id: str):
         },
         "recent_achievements": recent_achievements,
         "theme": theme,
-        "premium_features": {
-            "custom_timers": user["subscription_tier"] == "premium",
-            "productivity_themes": user["subscription_tier"] == "premium",
-            "premium_sounds": user["subscription_tier"] == "premium",
-            "advanced_analytics": user["subscription_tier"] == "premium"
-        }
+        "premium_features": get_premium_features_for_tier(
+            user["subscription_tier"], 
+            user.get("premium_badge")
+        )
     }
 
 # Task routes
