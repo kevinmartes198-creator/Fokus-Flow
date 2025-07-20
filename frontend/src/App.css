@@ -1392,6 +1392,472 @@ body {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
+/* Referral Dashboard */
+.referral-dashboard {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.referral-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.referral-title {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.5rem;
+}
+
+.referral-subtitle {
+  color: #64748b;
+  font-size: 1.125rem;
+}
+
+/* Earnings Overview */
+.earnings-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.earnings-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+}
+
+.earnings-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.earnings-card.total {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.earnings-card.available {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+.earnings-card.referrals {
+  background: linear-gradient(135deg, #3b82f6, #1e40af);
+  color: white;
+}
+
+.earnings-card.potential {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  color: white;
+}
+
+.earnings-icon {
+  font-size: 2rem;
+  opacity: 0.9;
+}
+
+.earnings-amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.earnings-label {
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+
+/* Withdrawal Section */
+.withdrawal-section {
+  margin-bottom: 2rem;
+}
+
+.withdrawal-card {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+
+.withdrawal-content h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.withdrawal-content p {
+  margin-bottom: 1.5rem;
+  opacity: 0.9;
+}
+
+.withdraw-btn {
+  background: white;
+  color: #10b981;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 1.125rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.withdraw-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
+}
+
+/* Referral Link Sharing */
+.referral-sharing {
+  margin-bottom: 2rem;
+}
+
+.referral-sharing h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 1rem;
+}
+
+.referral-link-card {
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+}
+
+.referral-code-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.referral-code {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  background: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 2px solid var(--primary-color);
+}
+
+.referral-commission {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+}
+
+.referral-link-container {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.referral-link-input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background: white;
+  font-size: 0.875rem;
+}
+
+.copy-link-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.copy-link-btn:hover {
+  background: var(--primary-dark);
+}
+
+.referral-instruction {
+  color: #64748b;
+  font-size: 0.875rem;
+  text-align: center;
+  margin: 0;
+}
+
+/* Social Sharing */
+.social-sharing {
+  margin-bottom: 2rem;
+}
+
+.social-sharing h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 1rem;
+}
+
+.share-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.share-btn {
+  padding: 1rem;
+  border: none;
+  border-radius: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: white;
+}
+
+.share-btn.twitter {
+  background: #1da1f2;
+}
+
+.share-btn.facebook {
+  background: #1877f2;
+}
+
+.share-btn.linkedin {
+  background: #0a66c2;
+}
+
+.share-btn.whatsapp {
+  background: #25d366;
+}
+
+.share-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Referral History */
+.referral-history {
+  margin-bottom: 2rem;
+}
+
+.referral-history h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 1rem;
+}
+
+.referral-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.referral-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+}
+
+.referral-item.completed {
+  border-color: #10b981;
+  background: #ecfdf5;
+}
+
+.referral-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.referral-status {
+  font-size: 1.25rem;
+}
+
+.referral-date {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.referral-amount {
+  font-weight: 600;
+  color: #10b981;
+}
+
+.referral-status-text {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.referral-item.completed .referral-status-text {
+  color: #10b981;
+}
+
+/* How It Works */
+.how-it-works {
+  background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+  border-radius: 1rem;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.how-it-works h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: white;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.step-number {
+  width: 3rem;
+  height: 3rem;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.step-content h4 {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+}
+
+.step-content p {
+  color: #64748b;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* Withdrawal Modal */
+.withdrawal-modal {
+  max-width: 500px;
+}
+
+.withdrawal-summary {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.withdrawal-amount {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #10b981;
+  margin-bottom: 0.5rem;
+}
+
+.withdrawal-info {
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+}
+
+.withdrawal-info p {
+  margin: 0.5rem 0;
+  font-size: 0.875rem;
+  color: #475569;
+}
+
+/* Responsive Design for Referrals */
+@media (max-width: 768px) {
+  .referral-dashboard {
+    padding: 1rem;
+    margin: 1rem;
+  }
+  
+  .earnings-overview {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .share-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .steps {
+    grid-template-columns: 1fr;
+  }
+  
+  .referral-code-display {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  
+  .referral-link-container {
+    flex-direction: column;
+  }
+  
+  .copy-link-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .earnings-overview {
+    grid-template-columns: 1fr;
+  }
+  
+  .share-buttons {
+    grid-template-columns: 1fr;
+  }
+  
+  .referral-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .step {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
 /* Language Switcher */
 .language-switcher {
   margin-left: 1rem;
