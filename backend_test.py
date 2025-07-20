@@ -1178,6 +1178,13 @@ class FocusFlowTester:
         self.test_premium_achievements()
         self.test_productivity_adaptive_themes()
         
+        # NEW REFERRAL COMMISSION SYSTEM TEST
+        print("\n" + "🎯" * 20)
+        print("NEW REFERRAL COMMISSION SYSTEM TESTING")
+        print("🎯" * 20)
+        
+        self.test_referral_system_comprehensive()
+        
         # Summary
         print("\n" + "=" * 60)
         print("📋 TEST SUMMARY")
@@ -1208,6 +1215,26 @@ class FocusFlowTester:
             print(f"Payment Tests: {len(payment_tests)}")
             print(f"Payment Passed: {payment_passed}")
             print(f"Payment Success Rate: {(payment_passed/len(payment_tests))*100:.1f}%")
+        
+        # Show referral system specific results
+        referral_tests = [result for result in self.test_results if any(keyword in result["test"].lower() 
+                         for keyword in ["referral", "commission", "withdrawal"])]
+        
+        if referral_tests:
+            referral_passed = sum(1 for test in referral_tests if test["success"])
+            print(f"\n🎯 REFERRAL COMMISSION SYSTEM RESULTS:")
+            print(f"Referral Tests: {len(referral_tests)}")
+            print(f"Referral Passed: {referral_passed}")
+            print(f"Referral Success Rate: {(referral_passed/len(referral_tests))*100:.1f}%")
+            
+            # Show referral test summary if available
+            if hasattr(self, 'referral_test_data'):
+                data = self.referral_test_data
+                print(f"\n🎯 REFERRAL SYSTEM INTEGRATION:")
+                print(f"  • Referrer ID: {data['referrer_id'][:8]}...")
+                print(f"  • Referral Code: {data['referral_code']}")
+                print(f"  • Components Working: {len(data['components_working'])}/4")
+                print(f"  • Session ID: {data['session_id'][:20]}..." if data['session_id'] else "  • Session ID: Not created")
         
         print(f"\n✅ Test completed at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         
