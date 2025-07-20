@@ -1813,6 +1813,120 @@ async def get_user_purchases(user_id: str):
     
     return purchase_history
 
+@app.get("/api/gamification/badge-system")
+async def get_badge_system():
+    """Get badge system configuration"""
+    return BADGE_SYSTEM
+
+@app.get("/api/users/{user_id}/badges")
+async def get_user_badges(user_id: str):
+    """Get user's unlocked badges"""
+    badges = await db.user_badges.find({"user_id": user_id}).sort("awarded_at", -1).to_list(100)
+    
+    badge_list = []
+    for badge_record in badges:
+        badge_data = badge_record["badge_data"]
+        badge_list.append({
+            "id": badge_record["id"],
+            "badge_id": badge_record["badge_id"],
+            "name": badge_data["name"],
+            "description": badge_data["description"],
+            "icon": badge_data["icon"],
+            "category": badge_data["category"],
+            "tier": badge_data["tier"], 
+            "rarity": badge_data["rarity"],
+            "awarded_at": badge_record["awarded_at"]
+        })
+    
+    return badge_list
+
+@app.post("/api/users/{user_id}/check-badges")
+async def trigger_badge_check(user_id: str):
+    """Manually trigger badge unlock check"""
+    newly_unlocked = await check_badge_unlocks(user_id)
+    
+    return {
+        "newly_unlocked": len(newly_unlocked),
+        "badges": [
+            {
+                "name": badge["badge_data"]["name"],
+                "description": badge["badge_data"]["description"], 
+                "icon": badge["badge_data"]["icon"],
+                "rarity": badge["badge_data"]["rarity"]
+            }
+            for badge in newly_unlocked
+        ]
+    }
+
+@app.get("/api/gamification/ghosted-features")
+async def get_ghosted_features():
+    """Get ghosted features for free users"""
+    return GHOSTED_FEATURES
+
+@app.get("/api/users/{user_id}/badge-progress")
+async def get_badge_progress(user_id: str):
+    """Get user's progress toward unlocking badges"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get existing badges
+    existing_badges = await db.user_badges.find({"user_id": user_id}).to_list(None)
+    existing_badge_ids = {badge["badge_id"] for badge in existing_badges}
+    
+    progress_data = []
+    
+    for badge_id, badge in BADGE_SYSTEM["badges"].items():
+        if badge_id in existing_badge_ids:
+            continue  # Already unlocked
+            
+        unlock_condition = badge["unlock_condition"]
+        current_progress = 0
+        goal = 0
+        progress_type = ""
+        
+        # Calculate progress for different conditions
+        if "level" in unlock_condition:
+            current_progress = user.get("level", 1)
+            goal = unlock_condition["level"]
+            progress_type = "level"
+        elif "focus_sessions" in unlock_condition:
+            current_progress = user.get("focus_sessions_completed", 0)
+            goal = unlock_condition["focus_sessions"]
+            progress_type = "focus_sessions"
+        elif "streak" in unlock_condition:
+            current_progress = user.get("current_streak", 0)
+            goal = unlock_condition["streak"]
+            progress_type = "streak"
+        elif "subscription_tier" in unlock_condition:
+            # This is binary - either have it or don't
+            current_progress = 1 if user.get("subscription_tier") == unlock_condition["subscription_tier"] else 0
+            goal = 1
+            progress_type = "subscription"
+        
+        if goal > 0:
+            progress_percentage = min(100, (current_progress / goal) * 100)
+            
+            progress_data.append({
+                "badge_id": badge_id,
+                "name": badge["name"],
+                "description": badge["description"],
+                "icon": badge["icon"],
+                "category": badge["category"],
+                "tier": badge["tier"],
+                "rarity": badge["rarity"],
+                "current_progress": current_progress,
+                "goal": goal,
+                "progress_percentage": progress_percentage,
+                "progress_type": progress_type,
+                "reward": badge.get("reward", {})
+            })
+    
+    # Sort by progress percentage (closest to completion first)
+    progress_data.sort(key=lambda x: x["progress_percentage"], reverse=True)
+    
+    return progress_data
+
 @api_router.post("/subscription/checkout")
 async def create_subscription_checkout(request: SubscriptionRequest):
     """Create Stripe checkout session for subscription with referral tracking"""
