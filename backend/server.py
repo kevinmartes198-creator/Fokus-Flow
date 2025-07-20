@@ -391,15 +391,23 @@ async def check_and_award_achievements(user_id: str):
                 "xp_reward": 150
             })
     
-    # Premium subscriber achievement
-    if user["subscription_tier"] == "premium":
+    # Premium subscriber achievement - updated for all premium tiers
+    if is_premium_user(user["subscription_tier"]):
         existing = await db.achievements.find_one({"user_id": user_id, "achievement_type": "premium_subscriber"})
         if not existing:
+            # Give legacy users special achievement
+            if user["subscription_tier"] == "premium":
+                title = "Legacy Premium Supporter"
+                description = "Early adopter with Legacy Premium status"
+            else:
+                title = "Premium Supporter" 
+                description = "Upgrade to Premium subscription"
+                
             achievements_to_award.append({
                 "user_id": user_id,
                 "achievement_type": "premium_subscriber",
-                "title": "Premium Supporter",
-                "description": "Upgrade to Premium subscription",
+                "title": title,
+                "description": description,
                 "xp_reward": 200
             })
     
