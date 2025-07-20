@@ -246,6 +246,245 @@ DAILY_CHALLENGES = {
     }
 }
 
+# Advanced Badge & Achievement System - Phase 3 Gamification
+BADGE_SYSTEM = {
+    "categories": {
+        "progression": {
+            "name": "Progression Badges",
+            "icon": "⭐",
+            "description": "Level up your productivity journey"
+        },
+        "focus": {
+            "name": "Focus Master Badges", 
+            "icon": "🎯",
+            "description": "Deep work and concentration achievements"
+        },
+        "streak": {
+            "name": "Consistency Badges",
+            "icon": "🔥", 
+            "description": "Daily habit and streak rewards"
+        },
+        "premium": {
+            "name": "Supporter Badges",
+            "icon": "👑",
+            "description": "Premium subscription achievement badges"
+        },
+        "special": {
+            "name": "Special Event Badges",
+            "icon": "🏆",
+            "description": "Limited time and rare achievement badges"
+        },
+        "social": {
+            "name": "Community Badges",
+            "icon": "👥", 
+            "description": "Referral and sharing achievement badges"
+        }
+    },
+    "badges": {
+        # Progression Badges (Bronze -> Silver -> Gold -> Platinum)
+        "level_rookie": {
+            "name": "Rookie Producer",
+            "description": "Reach Level 5",
+            "icon": "🥉",
+            "category": "progression",
+            "tier": "bronze",
+            "unlock_condition": {"level": 5},
+            "reward": {"xp": 50},
+            "rarity": "common"
+        },
+        "level_expert": {
+            "name": "Productivity Expert", 
+            "description": "Reach Level 15",
+            "icon": "🥈",
+            "category": "progression", 
+            "tier": "silver",
+            "unlock_condition": {"level": 15},
+            "reward": {"xp": 100},
+            "rarity": "uncommon"
+        },
+        "level_master": {
+            "name": "Focus Master",
+            "description": "Reach Level 30",
+            "icon": "🥇",
+            "category": "progression",
+            "tier": "gold", 
+            "unlock_condition": {"level": 30},
+            "reward": {"xp": 200, "special_theme": "master_gold"},
+            "rarity": "rare"
+        },
+        "level_legend": {
+            "name": "Productivity Legend",
+            "description": "Reach Level 50",
+            "icon": "💎",
+            "category": "progression",
+            "tier": "platinum",
+            "unlock_condition": {"level": 50},
+            "reward": {"xp": 500, "special_theme": "legend_platinum", "title": "Legend"},
+            "rarity": "legendary"
+        },
+        
+        # Focus Achievement Badges
+        "focus_beginner": {
+            "name": "Focus Starter",
+            "description": "Complete 10 focus sessions",
+            "icon": "🎯",
+            "category": "focus",
+            "tier": "bronze",
+            "unlock_condition": {"focus_sessions": 10},
+            "reward": {"xp": 75},
+            "rarity": "common"
+        },
+        "focus_warrior": {
+            "name": "Deep Work Warrior", 
+            "description": "Complete 100 focus sessions",
+            "icon": "⚔️",
+            "category": "focus",
+            "tier": "silver",
+            "unlock_condition": {"focus_sessions": 100},
+            "reward": {"xp": 150, "focus_boost": 1.1},
+            "rarity": "uncommon"
+        },
+        "focus_master": {
+            "name": "Concentration Master",
+            "description": "Complete 500 focus sessions",
+            "icon": "🧠",
+            "category": "focus", 
+            "tier": "gold",
+            "unlock_condition": {"focus_sessions": 500},
+            "reward": {"xp": 300, "focus_boost": 1.2},
+            "rarity": "rare"
+        },
+        
+        # Streak Achievement Badges
+        "streak_starter": {
+            "name": "Consistent Starter",
+            "description": "Maintain a 3-day streak",
+            "icon": "🔥",
+            "category": "streak",
+            "tier": "bronze", 
+            "unlock_condition": {"streak": 3},
+            "reward": {"xp": 50},
+            "rarity": "common"
+        },
+        "streak_master": {
+            "name": "Streak Master",
+            "description": "Maintain a 30-day streak", 
+            "icon": "🌟",
+            "category": "streak",
+            "tier": "gold",
+            "unlock_condition": {"streak": 30},
+            "reward": {"xp": 400, "streak_protection": 7},
+            "rarity": "rare"
+        },
+        "streak_legend": {
+            "name": "Consistency Legend",
+            "description": "Maintain a 100-day streak",
+            "icon": "⚡",
+            "category": "streak", 
+            "tier": "platinum",
+            "unlock_condition": {"streak": 100},
+            "reward": {"xp": 1000, "streak_protection": 14, "title": "Streak Legend"},
+            "rarity": "legendary"
+        },
+        
+        # Premium Supporter Badges
+        "legacy_supporter": {
+            "name": "Legacy Supporter",
+            "description": "Early Premium adopter with legacy status",
+            "icon": "👑",
+            "category": "premium",
+            "tier": "special",
+            "unlock_condition": {"subscription_tier": "premium"},
+            "reward": {"exclusive_theme": "legacy_royal"},
+            "rarity": "exclusive"
+        },
+        "monthly_supporter": {
+            "name": "Monthly Supporter", 
+            "description": "Active Monthly Premium subscriber",
+            "icon": "🎖️",
+            "category": "premium",
+            "tier": "bronze",
+            "unlock_condition": {"subscription_tier": "premium_monthly"},
+            "reward": {"subscriber_theme": "monthly_gold"},
+            "rarity": "supporter"
+        },
+        "yearly_supporter": {
+            "name": "Yearly Supporter",
+            "description": "Committed Yearly Premium subscriber", 
+            "icon": "🏅",
+            "category": "premium",
+            "tier": "silver", 
+            "unlock_condition": {"subscription_tier": "premium_yearly"},
+            "reward": {"subscriber_theme": "yearly_emerald", "yearly_bonus": 1.1},
+            "rarity": "supporter"
+        },
+        "lifetime_supporter": {
+            "name": "Lifetime Supporter",
+            "description": "Ultimate FocusFlow Lifetime supporter",
+            "icon": "💎",
+            "category": "premium",
+            "tier": "platinum",
+            "unlock_condition": {"subscription_tier": "premium_lifetime"}, 
+            "reward": {"subscriber_theme": "lifetime_diamond", "lifetime_bonus": 1.25, "title": "Lifetime Legend"},
+            "rarity": "legendary"
+        },
+        
+        # Social/Referral Badges
+        "referral_starter": {
+            "name": "Friend Inviter",
+            "description": "Refer your first friend to FocusFlow",
+            "icon": "🤝", 
+            "category": "social",
+            "tier": "bronze",
+            "unlock_condition": {"referrals": 1},
+            "reward": {"xp": 100, "commission_bonus": 1.1},
+            "rarity": "common"
+        },
+        "referral_master": {
+            "name": "Community Builder",
+            "description": "Successfully refer 10 premium users",
+            "icon": "👥",
+            "category": "social",
+            "tier": "gold", 
+            "unlock_condition": {"successful_referrals": 10},
+            "reward": {"xp": 500, "commission_bonus": 1.25, "referral_boost": "permanent"},
+            "rarity": "rare"
+        },
+        
+        # Special Event Badges (Seasonal/Limited)
+        "early_adopter": {
+            "name": "Early Adopter",
+            "description": "Joined FocusFlow in the first month",
+            "icon": "🚀",
+            "category": "special",
+            "tier": "platinum",
+            "unlock_condition": {"joined_before": "2025-07-31"},
+            "reward": {"exclusive_theme": "early_adopter_special", "title": "Pioneer"},
+            "rarity": "exclusive"
+        },
+        "shop_explorer": {
+            "name": "Shop Explorer",
+            "description": "Make your first in-app purchase",
+            "icon": "🛍️",
+            "category": "special", 
+            "tier": "bronze",
+            "unlock_condition": {"purchases": 1},
+            "reward": {"xp": 75, "shop_discount": 5},
+            "rarity": "common"
+        },
+        "power_buyer": {
+            "name": "Power Buyer", 
+            "description": "Purchase 5 different in-app products",
+            "icon": "💳",
+            "category": "special",
+            "tier": "gold",
+            "unlock_condition": {"unique_purchases": 5},
+            "reward": {"xp": 300, "shop_discount": 15, "exclusive_products": True},
+            "rarity": "rare"
+        }
+    }
+}
+
 # Models
 class Task(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
