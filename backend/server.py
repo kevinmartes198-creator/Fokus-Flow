@@ -494,6 +494,151 @@ async def check_and_award_achievements(user_id: str):
             {"$inc": {"total_xp": total_bonus_xp}}
         )
 
+async def process_referral_commission(payment_transaction_id: str, referral_code_used: str, amount_paid: float):
+    """Process instant commission payout to referrer when payment completes"""
+    if not referral_code_used:
+        return
+    
+    # Find the referrer by their referral code
+    referrer = await db.users.find_one({"referral_code": referral_code_used})
+    if not referrer:
+        logging.warning(f"Referral code {referral_code_used} not found")
+        return
+    
+    commission_amount = 5.00  # $5 instant commission
+    
+    try:
+        # Create referral record
+        referral = Referral(
+            referrer_user_id=referrer["id"],
+            referred_user_id=payment_transaction_id,  # Using transaction ID as reference
+            referral_code=referral_code_used,
+            status=ReferralStatus.completed,
+            commission_earned=commission_amount,
+            payment_transaction_id=payment_transaction_id
+        )
+        await db.referrals.insert_one(referral.dict())
+        
+        # Create commission record
+        commission = Commission(
+            user_id=referrer["id"],
+            referral_id=referral.id,
+            amount=commission_amount,
+            status=CommissionStatus.paid,  # Mark as paid immediately
+            payment_transaction_id=payment_transaction_id,
+            paid_at=datetime.utcnow()
+        )
+        await db.commissions.insert_one(commission.dict())
+        
+        # Update referrer's stats
+        await db.users.update_one(
+            {"id": referrer["id"]},
+            {
+                "$inc": {
+                    "total_referrals": 1,
+                    "total_commission_earned": commission_amount
+                }
+            }
+        )
+        
+        # Create instant payout using Stripe
+        await process_instant_payout(referrer["id"], commission_amount, referral.id)
+        
+        # Award referral achievement
+        await award_referral_achievement(referrer["id"])
+        
+        logging.info(f"Processed $5 instant commission for referrer {referrer['id']}")
+        
+    except Exception as e:
+        logging.error(f"Error processing referral commission: {str(e)}")
+
+async def process_instant_payout(user_id: str, amount: float, referral_id: str):
+    """Process instant $5 payout to referrer's payment method"""
+    try:
+        # For now, we'll add the commission as app credit that can be withdrawn
+        # In production, you could integrate with Stripe Express accounts for instant bank transfers
+        
+        # Create a pending withdrawal record that user can claim
+        withdrawal = {
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "amount": amount,
+            "currency": "usd",
+            "type": "referral_commission",
+            "referral_id": referral_id,
+            "status": "available_for_withdrawal",
+            "created_at": datetime.utcnow()
+        }
+        
+        await db.withdrawals.insert_one(withdrawal)
+        
+        # You could also integrate with:
+        # - Stripe Express for instant bank transfers
+        # - PayPal for instant PayPal transfers
+        # - Venmo/CashApp APIs for instant mobile payments
+        # - Or provide as app credits that reduce future subscription costs
+        
+        logging.info(f"Created instant withdrawal of ${amount} for user {user_id}")
+        
+    except Exception as e:
+        logging.error(f"Error processing instant payout: {str(e)}")
+
+async def award_referral_achievement(user_id: str):
+    """Award achievements for successful referrals"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        return
+    
+    achievements_to_award = []
+    
+    # First referral achievement
+    if user["total_referrals"] >= 1:
+        existing = await db.achievements.find_one({"user_id": user_id, "achievement_type": "first_referral"})
+        if not existing:
+            achievements_to_award.append({
+                "user_id": user_id,
+                "achievement_type": "first_referral",
+                "title": "Referral Rookie",
+                "description": "Made your first successful referral",
+                "xp_reward": 100
+            })
+    
+    # Multiple referral achievements
+    if user["total_referrals"] >= 5:
+        existing = await db.achievements.find_one({"user_id": user_id, "achievement_type": "referral_5"})
+        if not existing:
+            achievements_to_award.append({
+                "user_id": user_id,
+                "achievement_type": "referral_5",
+                "title": "Referral Champion",
+                "description": "Successfully referred 5 users",
+                "xp_reward": 250
+            })
+    
+    if user["total_referrals"] >= 10:
+        existing = await db.achievements.find_one({"user_id": user_id, "achievement_type": "referral_10"})
+        if not existing:
+            achievements_to_award.append({
+                "user_id": user_id,
+                "achievement_type": "referral_10",
+                "title": "Referral Master",
+                "description": "Successfully referred 10 users - $50 earned!",
+                "xp_reward": 500
+            })
+    
+    # Award achievements and bonus XP
+    total_bonus_xp = 0
+    for achievement_data in achievements_to_award:
+        achievement = Achievement(**achievement_data)
+        await db.achievements.insert_one(achievement.dict())
+        total_bonus_xp += achievement.xp_reward
+    
+    if total_bonus_xp > 0:
+        await db.users.update_one(
+            {"id": user_id},
+            {"$inc": {"total_xp": total_bonus_xp}}
+        )
+
 async def check_subscription_status(user_id: str):
     """Check if user's subscription is still active"""
     user = await db.users.find_one({"id": user_id})
