@@ -1192,13 +1192,26 @@ const SubscriptionModal = ({ isOpen, onClose }) => {
     }
   };
 
+  const formatPrice = (amount, currency) => {
+    return `${amount}€`;
+  };
+
+  const getPackageOrder = (packageId) => {
+    const order = { 'monthly_premium': 1, 'yearly_premium': 2, 'lifetime_premium': 3 };
+    return order[packageId] || 99;
+  };
+
   if (!isOpen) return null;
+
+  const sortedPackages = Object.entries(packages).sort(([a], [b]) => 
+    getPackageOrder(a) - getPackageOrder(b)
+  );
 
   return (
     <div className="modal-overlay">
       <div className="modal-content subscription-modal">
         <div className="modal-header">
-          <h3>Upgrade to Premium</h3>
+          <h3>Choose Your Plan</h3>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
         
@@ -1234,24 +1247,47 @@ const SubscriptionModal = ({ isOpen, onClose }) => {
                 <svg className="feature-icon" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                Advanced analytics and insights
+                Cloud backup & Advanced analytics
               </li>
             </ul>
           </div>
           
           <div className="subscription-packages">
-            {Object.entries(packages).map(([packageId, pkg]) => (
-              <div key={packageId} className="package-card premium-package">
+            {sortedPackages.map(([packageId, pkg]) => (
+              <div key={packageId} className={`package-card ${packageId === 'yearly_premium' ? 'popular' : ''} ${pkg.is_special ? 'special' : ''}`}>
+                {packageId === 'yearly_premium' && (
+                  <div className="popular-badge">Most Popular</div>
+                )}
+                {pkg.is_special && (
+                  <div className="special-badge">Limited Time</div>
+                )}
+                
                 <div className="package-header">
                   <h4>{pkg.name}</h4>
                   <div className="package-price">
-                    <span className="price">${pkg.amount}</span>
-                    <span className="period">/month</span>
+                    <span className="price">{formatPrice(pkg.amount, pkg.currency)}</span>
+                    <span className="period">
+                      {packageId === 'lifetime_premium' ? ' einmalig' : 
+                       packageId === 'yearly_premium' ? '/Jahr' : '/Monat'}
+                    </span>
                   </div>
+                  {pkg.monthly_equivalent && (
+                    <div className="monthly-equivalent">
+                      Nur {pkg.monthly_equivalent}€/Monat
+                    </div>
+                  )}
                 </div>
+                
                 <p className="package-description">{pkg.description}</p>
+                
+                {pkg.savings && (
+                  <div className="savings-badge">
+                    {pkg.savings}
+                  </div>
+                )}
+                
                 <button
-                  className="package-btn premium"
+                  className={`package-btn ${packageId === 'yearly_premium' ? 'popular' : packageId === 'lifetime_premium' ? 'special' : 'premium'}`}
                   onClick={() => handleSubscribe(packageId)}
                   disabled={loading}
                 >
@@ -1263,6 +1299,7 @@ const SubscriptionModal = ({ isOpen, onClose }) => {
           
           <div className="subscription-note">
             <p>✨ Start your premium journey today and unlock your full productivity potential!</p>
+            <p><small>💡 Upsell durch Wert – nicht durch Zwang</small></p>
           </div>
         </div>
       </div>
