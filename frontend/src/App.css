@@ -1479,6 +1479,239 @@ body {
   }
 }
 
+/* Shop Styles */
+.shop {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.shop-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.shop-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1rem;
+}
+
+.shop-header p {
+  font-size: 1.1rem;
+  color: #64748b;
+  margin-bottom: 2rem;
+}
+
+.user-inventory-summary {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  padding: 1rem 2rem;
+  background: var(--secondary-color);
+  border-radius: 1rem;
+  display: inline-flex;
+}
+
+.inventory-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.inventory-icon {
+  font-size: 1.2rem;
+}
+
+.shop-categories {
+  margin-bottom: 3rem;
+}
+
+.category-section {
+  margin-bottom: 4rem;
+}
+
+.category-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-bottom: 1.5rem;
+}
+
+.category-icon {
+  font-size: 1.5rem;
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.product-card {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  border-color: var(--primary-color);
+}
+
+.product-card.owned {
+  border-color: #10b981;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(5, 150, 105, 0.05));
+}
+
+.product-icon {
+  font-size: 3rem;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.product-info h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-bottom: 0.5rem;
+}
+
+.product-info p {
+  color: #64748b;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.product-price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 1.5rem;
+}
+
+.purchase-btn {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.purchase-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+}
+
+.purchase-btn.purchasing {
+  background: #6b7280;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.owned-badge {
+  width: 100%;
+  padding: 1rem;
+  background: #10b981;
+  color: white;
+  text-align: center;
+  border-radius: 0.75rem;
+  font-weight: 600;
+}
+
+.purchase-history {
+  background: var(--secondary-color);
+  border-radius: 1rem;
+  padding: 2rem;
+}
+
+.purchase-history h2 {
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 0.5rem;
+}
+
+.history-icon {
+  font-size: 1.5rem;
+}
+
+.history-name {
+  flex: 1;
+  font-weight: 600;
+}
+
+.history-amount {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.history-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.history-status.completed {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.history-status.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+@media (max-width: 768px) {
+  .shop {
+    padding: 1rem;
+  }
+  
+  .products-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .user-inventory-summary {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .shop-header h1 {
+    font-size: 2rem;
+  }
+}
+
 /* Payment Success/Status Pages */
 .subscription-success-page {
   min-height: 100vh;
